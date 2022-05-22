@@ -157,13 +157,16 @@ const gutterView = ViewPlugin.fromClass(class {
     let lineClasses = RangeSet.iter(this.view.state.facet(gutterLineClass), this.view.viewport.from)
     let classSet: GutterMarker[] = []
     let contexts = this.gutters.map(gutter => new UpdateContext(gutter, this.view.viewport, -this.view.documentPadding.top))
+    let lastLineNum = -1
     for (let line of this.view.viewportLineBlocks) {
+      let lineNum = this.view.state.doc.lineAt(line.from).number
       let text: BlockInfo | undefined
       if (Array.isArray(line.type)) {
         for (let b of line.type) if (b.type == BlockType.Text) { text = b; break }
       } else {
-        text = line.type == BlockType.Text ? line : undefined
+        text = line.type == BlockType.Text || lastLineNum < lineNum ? line : undefined
       }
+      lastLineNum = lineNum
       if (!text) continue
 
       if (classSet.length) classSet = []
@@ -224,6 +227,20 @@ function advanceCursor(cursor: RangeCursor<GutterMarker>, collect: GutterMarker[
   }
 }
 
+function getNextNode(node: Node): Node | null {
+  if (node instanceof HTMLElement && node.classList.contains('cm-line')) return node
+  if (node.nodeType === Node.TEXT_NODE && node.textContent !== '\u200B') return node.parentNode
+  if (node.firstChild) return getNextNode(node.firstChild)
+  if (node.nextSibling) return getNextNode(node.nextSibling)
+  let parent = node.parentNode
+  while (parent) {
+    if (parent instanceof Element && parent.classList.contains('cm-line')) return parent
+    if (parent.nextSibling) return getNextNode(parent.nextSibling)
+    parent = parent.parentNode
+  }
+  return null
+}
+
 class UpdateContext {
   cursor: RangeCursor<GutterMarker>
   i = 0
@@ -243,13 +260,42 @@ class UpdateContext {
     if (localMarkers.length == 0 && !gutter.config.renderEmptyElements) return
 
     let above = line.top - this.height
+    let dom: HTMLElement;
     if (this.i == gutter.elements.length) {
       let newElt = new GutterElement(view, line.height, above, localMarkers)
       gutter.elements.push(newElt)
       gutter.dom.appendChild(newElt.dom)
+      dom = newElt.dom
     } else {
-      gutter.elements[this.i].update(view, line.height, above, localMarkers)
+      let elt = gutter.elements[this.i]
+      elt.update(view, line.height, above, localMarkers)
+      dom = elt.dom
     }
+    view.requestMeasure({
+      read: view => {
+        let paddingTop = ''
+        let lineHeight = ''
+        try {
+          let domAtPos = view.domAtPos(line.from)
+          let domNode = domAtPos.node.childNodes[domAtPos.offset] || domAtPos.node
+          let lineNode = domNode as Element
+          while (lineNode.parentElement && lineNode.parentElement !== view.contentDOM) {
+            lineNode = lineNode.parentElement
+          }
+          paddingTop = getComputedStyle(lineNode).paddingTop
+          let node = getNextNode(domNode)
+          lineHeight = getComputedStyle(node as HTMLElement).lineHeight
+          if (lineHeight === '0px') {
+            lineHeight = ''
+          }
+        } catch(e) { }
+        return {paddingTop, lineHeight}
+      },
+      write: ({paddingTop, lineHeight}) => {
+        dom.style.paddingTop = paddingTop
+        dom.style.lineHeight = lineHeight
+      }
+    })
     this.height = line.bottom
     this.i++
   }
