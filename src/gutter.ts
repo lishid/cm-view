@@ -278,6 +278,20 @@ function advanceCursor(cursor: RangeCursor<GutterMarker>, collect: GutterMarker[
   }
 }
 
+function getNextNode(node: Node): Node | null {
+  if (node instanceof HTMLElement && node.classList.contains('cm-line')) return node
+  if (node.nodeType === Node.TEXT_NODE && node.textContent !== '\u200B') return node.parentNode
+  if (node.firstChild) return getNextNode(node.firstChild)
+  if (node.nextSibling) return getNextNode(node.nextSibling)
+  let parent = node.parentNode
+  while (parent) {
+    if (parent instanceof Element && parent.classList.contains('cm-line')) return parent
+    if (parent.nextSibling) return getNextNode(parent.nextSibling)
+    parent = parent.parentNode
+  }
+  return null
+}
+
 class UpdateContext {
   cursor: RangeCursor<GutterMarker>
   i = 0
@@ -288,13 +302,42 @@ class UpdateContext {
 
   addElement(view: EditorView, block: BlockInfo, markers: readonly GutterMarker[]) {
     let {gutter} = this, above = (block.top - this.height) / view.scaleY, height = block.height / view.scaleY
+    let dom: HTMLElement;
     if (this.i == gutter.elements.length) {
       let newElt = new GutterElement(view, height, above, markers)
       gutter.elements.push(newElt)
       gutter.dom.appendChild(newElt.dom)
+      dom = newElt.dom
     } else {
-      gutter.elements[this.i].update(view, height, above, markers)
+      let elt = gutter.elements[this.i]
+      elt.update(view, height, above, markers)
+      dom = elt.dom
     }
+    view.requestMeasure({
+      read: view => {
+        let paddingTop = ''
+        let lineHeight = ''
+        try {
+          let domAtPos = view.domAtPos(block.from)
+          let domNode = domAtPos.node.childNodes[domAtPos.offset] || domAtPos.node
+          let lineNode = domNode as Element
+          while (lineNode.parentElement && lineNode.parentElement !== view.contentDOM) {
+            lineNode = lineNode.parentElement
+          }
+          paddingTop = getComputedStyle(lineNode).paddingTop
+          let node = getNextNode(domNode)
+          lineHeight = getComputedStyle(node as HTMLElement).lineHeight
+          if (lineHeight === '0px') {
+            lineHeight = ''
+          }
+        } catch(e) { }
+        return {paddingTop, lineHeight}
+      },
+      write: ({paddingTop, lineHeight}) => {
+        dom.style.paddingTop = paddingTop
+        dom.style.lineHeight = lineHeight
+      }
+    })
     this.height = block.bottom
     this.i++
   }
