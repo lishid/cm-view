@@ -22,7 +22,7 @@ export function deepActiveElement(doc: Document) {
 }
 
 export function hasSelection(dom: HTMLElement, selection: SelectionRange): boolean {
-  if (!selection.anchorNode) return false
+  if (!selection || !selection.anchorNode) return false
   try {
     // Firefox will raise 'permission denied' errors when accessing
     // properties of `sel.anchorNode` when it's in a generated CSS
