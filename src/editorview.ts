@@ -197,7 +197,7 @@ export class EditorView {
       (dispatch && ((trs: readonly Transaction[]) => trs.forEach(tr => dispatch!(tr, this)))) ||
       ((trs: readonly Transaction[]) => this.update(trs))
     this.dispatch = this.dispatch.bind(this)
-    this._root = (config.root || getRoot(config.parent) || document) as DocumentOrShadowRoot
+    this._root = (config.root || getRoot(config.parent) || config.parent?.ownerDocument || document) as DocumentOrShadowRoot
 
     this.viewState = new ViewState(config.state || EditorState.create(config))
     if (config.scrollTo && config.scrollTo.is(scrollIntoView))
