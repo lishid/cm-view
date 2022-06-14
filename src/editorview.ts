@@ -181,9 +181,11 @@ export class EditorView {
     this.dom.appendChild(this.announceDOM)
     this.dom.appendChild(this.scrollDOM)
 
+    if (config.parent) config.parent.appendChild(this.dom)
+
     this._dispatch = config.dispatch || ((tr: Transaction) => this.update([tr]))
     this.dispatch = this.dispatch.bind(this)
-    this._root = (config.root || getRoot(config.parent) || document) as DocumentOrShadowRoot
+    this._root = (config.root || getRoot(config.parent) || config.parent?.ownerDocument || document) as DocumentOrShadowRoot
 
     this.viewState = new ViewState(config.state || EditorState.create(config))
     this.plugins = this.state.facet(viewPlugin).map(spec => new PluginInstance(spec))
@@ -198,8 +200,6 @@ export class EditorView {
     this.updateState = UpdateState.Idle
 
     this.requestMeasure()
-
-    if (config.parent) config.parent.appendChild(this.dom)
   }
 
   /// All regular editor state updates should go through this. It
