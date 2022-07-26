@@ -139,7 +139,7 @@ const gutterView = ViewPlugin.fromClass(class {
       this.dom.style.position = "sticky"
     }
     this.syncGutters(false)
-    view.scrollDOM.insertBefore(this.dom, view.contentDOM)
+    view.contentDOM.parentNode.insertBefore(this.dom, view.contentDOM)
   }
 
   update(update: ViewUpdate) {
@@ -188,7 +188,7 @@ const gutterView = ViewPlugin.fromClass(class {
       }
     }
     for (let cx of contexts) cx.finish()
-    if (detach) this.view.scrollDOM.insertBefore(this.dom, after)
+    if (detach) after.parentNode.insertBefore(this.dom, after)
   }
 
   updateGutters(update: ViewUpdate) {
