@@ -512,6 +512,7 @@ export class DocView {
   }
 
   scrollIntoView(target: ScrollTarget) {
+    if (!this.tile.dom.offsetParent) return
     if (target.isSnapshot) {
       let ref = this.view.viewState.lineBlockAt(target.range.head)
       this.view.scrollDOM.scrollTop = ref.top - target.yMargin
