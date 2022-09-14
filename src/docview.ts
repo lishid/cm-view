@@ -388,6 +388,7 @@ export class DocView extends ContentView {
   }
 
   scrollIntoView(target: ScrollTarget) {
+    if (!this.dom.offsetParent) return
     let {range} = target
     let rect = this.coordsAt(range.head, range.empty ? range.assoc : range.head > range.anchor ? -1 : 1), other
     if (!rect) return
