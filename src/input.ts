@@ -854,7 +854,11 @@ observers.compositionend = view => {
   view.inputState.compositionPendingKey = true
   view.inputState.compositionPendingChange = view.observer.pendingRecords().length > 0
   view.inputState.compositionFirstChange = null
-  if (browser.chrome && browser.android) {
+  // Reintroduced to fix regression (IME with multi-cursor not setting secondary cursors)
+  if (!browser.ios && !browser.android) {
+    view.observer.forceFlush()
+  }
+  else if (browser.chrome && browser.android) {
     // Delay flushing for a bit on Android because it'll often fire a
     // bunch of contradictory changes in a row at end of compositon
     view.observer.flushSoon()
