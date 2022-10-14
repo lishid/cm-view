@@ -213,7 +213,9 @@ export class InputState {
   }
 
   mustFlushObserver(event: Event) {
-    return event.type == "keydown" && (event as any).keyCode != 229
+    return (event.type == "keydown" && (event as any).keyCode != 229) ||
+        // Reintroduced this check back due to regression (IME with multi-cursor not setting secondary cursors)
+        event.type == "compositionend" && !browser.ios && !browser.android
   }
 
   startMouseSelection(mouseSelection: MouseSelection) {
