@@ -581,9 +581,11 @@ class EditContextManager {
 
       let change = {from: diff.from + from, to: diff.toA + from,
                     insert: Text.of(e.text.slice(diff.from, diff.toB).split("\n"))}
+/*
       if ((browser.mac || browser.android) && change.from == head - 1 &&
           /^\. ?$/.test(e.text) && view.contentDOM.getAttribute("autocorrect") == "off")
         change = {from, to, insert: Text.of([e.text.replace(".", " ")])}
+*/
 
       this.pendingContextChange = change
       if (!view.state.readOnly) {
