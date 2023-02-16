@@ -141,13 +141,13 @@ export function applyDOMChange(view: EditorView, domChange: DOMChange): boolean 
 
   if (!change && !newSel) return false
 
-  if ((browser.mac || browser.android) && change && change.from == change.to && change.from == sel.head - 1 &&
+/*if ((browser.mac || browser.android) && change && change.from == change.to && change.from == sel.head - 1 &&
              /^\. ?$/.test(change.insert.toString()) && view.contentDOM.getAttribute("autocorrect") == "off") {
     // Detect insert-period-on-double-space Mac and Android behavior,
     // and transform it into a regular space insert.
     if (newSel && change.insert.length == 2) newSel = EditorSelection.single(newSel.main.anchor - 1, newSel.main.head - 1)
     change = {from: change.from, to: change.to, insert: Text.of([change.insert.toString().replace(".", " ")])}
-  } else if (state.doc.lineAt(sel.from).to < sel.to && view.docView.lineHasWidget(sel.to) &&
+  } else */if (state.doc.lineAt(sel.from).to < sel.to && view.docView.lineHasWidget(sel.to) &&
              view.inputState.insertingTextAt > Date.now() - 50) {
     // For a cross-line insertion, Chrome and Safari will crudely take
     // the text of the line after the selection, flattening any
