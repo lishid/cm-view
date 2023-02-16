@@ -577,9 +577,11 @@ class EditContextManager {
         if (!newSel.main.eq(main)) view.dispatch({selection: newSel, userEvent: "select"})
         return
       }
+/*
       if ((browser.mac || browser.android) && change.from == head - 1 &&
           /^\. ?$/.test(e.text) && view.contentDOM.getAttribute("autocorrect") == "off")
         change = {from, to, insert: Text.of([e.text.replace(".", " ")])}
+*/
 
       this.pendingContextChange = change
       if (!view.state.readOnly) {
