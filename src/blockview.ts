@@ -86,7 +86,7 @@ export class LineView extends ContentView implements BlockView {
   }
 
   reuseDOM(node: Node) {
-    if (node.nodeName == "DIV") {
+    if (node.nodeName == "DIV" && (node as HTMLElement).classList.contains('cm-view')) {
       this.setDOM(node)
       this.flags |= ViewFlag.AttrsDirty | ViewFlag.NodeDirty
     }
@@ -219,6 +219,7 @@ export class BlockWidgetView extends ContentView implements BlockView {
     if (other instanceof BlockWidgetView &&
         other.widget.constructor == this.widget.constructor) {
       if (!other.widget.compare(this.widget)) this.markDirty(true)
+      else if (this.dom) other.widget.become(this.dom, this.widget)
       if (this.dom && !this.prevWidget) this.prevWidget = this.widget
       this.widget = other.widget
       this.length = other.length
