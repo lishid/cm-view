@@ -123,6 +123,11 @@ export abstract class WidgetType {
   /// implementation just returns false.
   updateDOM(dom: HTMLElement, view: EditorView): boolean { return false }
 
+  /// Called when a previous DOM element created by a widget of the
+  /// same type is about to be reused. Equivalent to `updateDOM`, but
+  /// for when `eq` returns true.
+  become(dom: HTMLElement, widget: WidgetType): void { }
+
   /// @internal
   compare(other: WidgetType): boolean {
     return this == other || this.constructor == other.constructor && this.eq(other)
