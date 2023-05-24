@@ -142,6 +142,9 @@ export abstract class WidgetType {
   /// @internal
   get isHidden() { return false }
 
+  /// Setting this to true causes widgets to never be reused
+  get noReuse() { return false }
+
   /// This is called when the an instance of the widget is removed
   /// from the editor view.
   destroy(dom: HTMLElement) {}
