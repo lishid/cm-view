@@ -160,6 +160,9 @@ export abstract class WidgetType {
   /// @internal
   get isHidden() { return false }
 
+  /// Setting this to true causes widgets to never be reused
+  get noReuse() { return false }
+
   /// @internal
   get editable() { return false }
 
