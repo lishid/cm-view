@@ -216,7 +216,8 @@ export class BlockWidgetView extends ContentView implements BlockView {
   domBoundsAround() { return null }
 
   become(other: ContentView) {
-    if (other instanceof BlockWidgetView &&
+    if (!this.widget.noReuse &&
+        other instanceof BlockWidgetView &&
         other.widget.constructor == this.widget.constructor) {
       if (!other.widget.compare(this.widget)) this.markDirty(true)
       else if (this.dom) other.widget.become(this.dom, this.widget)
