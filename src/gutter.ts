@@ -164,7 +164,7 @@ const gutterView = ViewPlugin.fromClass(class {
       if (Array.isArray(line.type)) {
         for (let b of line.type) if (b.type == BlockType.Text) { text = b; break }
       } else {
-        text = line.type == BlockType.Text || lastLineNum < lineNum ? line : undefined
+        text = line.type == BlockType.Text || (lastLineNum < lineNum && line.height > 1) ? line : undefined
       }
       lastLineNum = lineNum
       if (!text) continue
