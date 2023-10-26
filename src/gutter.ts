@@ -177,6 +177,7 @@ const gutterView = ViewPlugin.fromClass(class {
         advanceCursor(lineClasses, classSet, line.from)
         for (let cx of contexts) cx.line(this.view, line, classSet)
       } else if (line.widget) {
+        for (let cx of contexts) cx.line(this.view, line, classSet)
         for (let cx of contexts) cx.widget(this.view, line)
       }
     }
