@@ -2,7 +2,7 @@ import {ChangeSet, RangeSet, findClusterBreak, SelectionRange} from "@codemirror
 import {ContentView, ChildCursor, ViewFlag, DOMPos, replaceRange} from "./contentview"
 import {BlockView, LineView, BlockWidgetView} from "./blockview"
 import {TextView, MarkView} from "./inlineview"
-import {ContentBuilder, NullWidget} from "./buildview"
+import {ContentBuilder} from "./buildview"
 import browser from "./browser"
 import {Decoration, DecorationSet, WidgetType, addRange, MarkDecoration} from "./decoration"
 import {getAttrs} from "./attributes"
@@ -24,11 +24,10 @@ export class DocView extends ContentView {
   children!: BlockView[]
 
   decorations: readonly DecorationSet[] = []
-  dynamicDecorationMap: boolean[] = [false]
+  dynamicDecorationMap: boolean[] = []
   domChanged: {newSel: SelectionRange | null} | null = null
   hasComposition: {from: number, to: number} | null = null
   markedForComposition: Set<ContentView> = new Set
-  compositionBarrier = Decoration.none
 
   // Track a minimum width for the editor. When measuring sizes in
   // measureVisibleLineHeights, this is updated to point at the width
@@ -302,7 +301,7 @@ export class DocView extends ContentView {
   // composition, avoid moving it across it and disrupting the
   // composition.
   suppressWidgetCursorChange(sel: DOMSelectionState, cursor: SelectionRange) {
-    return this.hasComposition && cursor.empty && !this.compositionBarrier.size &&
+    return this.hasComposition && cursor.empty &&
       isEquivalentPosition(sel.focusNode!, sel.focusOffset, sel.anchorNode, sel.anchorOffset) &&
       this.posFromDOM(sel.focusNode!, sel.focusOffset) == cursor.head
   }
@@ -500,9 +499,8 @@ export class DocView extends ContentView {
   }
 
   updateDeco() {
-    let i = 1
-    let allDeco = this.view.state.facet(decorationsFacet).map(d => {
-      let dynamic = this.dynamicDecorationMap[i++] = typeof d == "function"
+    let allDeco = this.view.state.facet(decorationsFacet).map((d, i) => {
+      let dynamic = this.dynamicDecorationMap[i] = typeof d == "function"
       return dynamic ? (d as (view: EditorView) => DecorationSet)(this.view) : d as DecorationSet
     })
     let dynamicOuter = false, outerDeco = this.view.state.facet(outerDecorations).map((d, i) => {
@@ -511,43 +509,15 @@ export class DocView extends ContentView {
       return dynamic ? (d as (view: EditorView) => DecorationSet)(this.view) : d as DecorationSet
     })
     if (outerDeco.length) {
-      this.dynamicDecorationMap[i++] = dynamicOuter
+      this.dynamicDecorationMap[allDeco.length] = dynamicOuter
       allDeco.push(RangeSet.join(outerDeco))
     }
-    this.decorations = [
-      this.compositionBarrier,
+    for (let i = allDeco.length; i < allDeco.length + 3; i++) this.dynamicDecorationMap[i] = false
+    return this.decorations = [
       ...allDeco,
       this.computeBlockGapDeco(),
       this.view.viewState.lineGapDeco
     ]
-    while (i < this.decorations.length) this.dynamicDecorationMap[i++] = false
-    return this.decorations
-  }
-
-  // Starting a composition will style the inserted text with the
-  // style of the text before it, and this is only cleared when the
-  // composition ends, because touching it before that will abort it.
-  // This (called from compositionstart handler) tries to notice when
-  // the cursor is after a non-inclusive mark, where the styling could
-  // be jarring, and insert an ad-hoc widget before the cursor to
-  // isolate it from the style before it.
-  maybeCreateCompositionBarrier() {
-    let {main: {head, empty}} = this.view.state.selection
-    if (!empty) return false
-    let found: boolean | null = null
-    for (let set of this.decorations) {
-      set.between(head, head, (from, to, value) => {
-        if (value.point) found = false
-        else if (value.endSide < 0 && from < head && to == head) found = true
-      })
-      if (found === false) break
-    }
-    this.compositionBarrier = found ? Decoration.set(compositionBarrierWidget.range(head)) : Decoration.none
-    return !!found
-  }
-
-  clearCompositionBarrier() {
-    this.compositionBarrier = Decoration.none
   }
 
   scrollIntoView(target: ScrollTarget) {
@@ -582,8 +552,6 @@ export class DocView extends ContentView {
   // Will never be called but needs to be present
   split!: () => ContentView
 }
-
-const compositionBarrierWidget = Decoration.widget({side: -1, widget: NullWidget.inline})
 
 function betweenUneditable(pos: DOMPos) {
   return pos.node.nodeType == 1 && pos.node.firstChild &&
