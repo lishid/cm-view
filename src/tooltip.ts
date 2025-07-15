@@ -94,6 +94,8 @@ export function tooltips(config: {
   /// If the tooltip parent element sits in a transformed element, the
   /// library also falls back to absolute positioning.
   position?: "fixed" | "absolute",
+  /// Hide the tooltip when the editor loses focus
+  hideWhenBlur?: boolean,
   /// The element to put the tooltips into. By default, they are put
   /// in the editor (`cm-editor`) element, and that is usually what
   /// you want. But in some layouts that can lead to positioning
@@ -113,6 +115,7 @@ export function tooltips(config: {
 
 type TooltipConfig = {
   position: "fixed" | "absolute",
+  hideWhenBlur?: boolean,
   parent: HTMLElement | null,
   tooltipSpace: (view: EditorView) => Rect
 }
@@ -124,7 +127,8 @@ function windowSpace(view: EditorView) {
 
 const tooltipConfig = Facet.define<Partial<TooltipConfig>, TooltipConfig>({
   combine: values => ({
-    position: browser.ios ? "absolute" : values.find(conf => conf.position)?.position || "fixed",
+    position: browser.ios ? "absolute" : values.find(conf => conf.position)?.position || "absolute",
+    hideWhenBlur: values.find(conf => conf.hideWhenBlur)?.hideWhenBlur || false,
     parent: values.find(conf => conf.parent)?.parent || null,
     tooltipSpace: values.find(conf => conf.tooltipSpace)?.tooltipSpace || windowSpace,
   })
@@ -138,6 +142,7 @@ const tooltipPlugin = ViewPlugin.fromClass(class {
   measureReq: {read: () => Measured, write: (m: Measured) => void, key: any}
   inView = true
   position: "fixed" | "absolute"
+  hideWhenBlur: false
   madeAbsolute = false
   parent: HTMLElement | null
   declare container: HTMLElement
@@ -205,6 +210,10 @@ const tooltipPlugin = ViewPlugin.fromClass(class {
     if (newConfig.position != this.position && !this.madeAbsolute) {
       this.position = newConfig.position
       for (let t of this.manager.tooltipViews) t.dom.style.position = this.position
+      shouldMeasure = true
+    }
+    if (newConfig.hideWhenBlur != this.hideWhenBlur) {
+      this.hideWhenBlur = newConfig.hideWhenBlur
       shouldMeasure = true
     }
     if (newConfig.parent != this.parent) {
@@ -363,7 +372,9 @@ const tooltipPlugin = ViewPlugin.fromClass(class {
 
   maybeMeasure() {
     if (this.manager.tooltips.length) {
-      if (this.view.inView) this.view.requestMeasure(this.measureReq)
+      let shouldShow = !this.hideWhenBlur || this.view.hasFocus;
+      if (!shouldShow) for (let tv of this.manager.tooltipViews) tv.dom.style.top = Outside
+      if (shouldShow && this.view.inView) this.view.requestMeasure(this.measureReq)
       if (this.inView != this.view.inView) {
         this.inView = this.view.inView
         if (!this.inView) for (let tv of this.manager.tooltipViews) tv.dom.style.top = Outside
@@ -372,6 +383,8 @@ const tooltipPlugin = ViewPlugin.fromClass(class {
   }
 }, {
   eventObservers: {
+    blur() { this.maybeMeasure() },
+    focus() { this.maybeMeasure() },
     scroll() { this.maybeMeasure() }
   }
 })
