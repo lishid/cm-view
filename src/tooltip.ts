@@ -363,7 +363,8 @@ const tooltipPlugin = ViewPlugin.fromClass(class {
 
   maybeMeasure() {
     if (this.manager.tooltips.length) {
-      if (this.view.inView) this.view.requestMeasure(this.measureReq)
+      if (!this.view.hasFocus) for (let tv of this.manager.tooltipViews) tv.dom.style.top = Outside
+      if (this.view.inView && this.view.hasFocus) this.view.requestMeasure(this.measureReq)
       if (this.inView != this.view.inView) {
         this.inView = this.view.inView
         if (!this.inView) for (let tv of this.manager.tooltipViews) tv.dom.style.top = Outside
@@ -372,6 +373,8 @@ const tooltipPlugin = ViewPlugin.fromClass(class {
   }
 }, {
   eventObservers: {
+    blur() { this.maybeMeasure() },
+    focus() { this.maybeMeasure() },
     scroll() { this.maybeMeasure() }
   }
 })
