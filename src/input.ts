@@ -791,6 +791,7 @@ function updateForFocusChange(view: EditorView) {
   setTimeout(() => {
     let focus = view.hasFocus
     if (focus != view.inputState.notifiedFocused) {
+      if (focus && browser.ios) view.observer.onSelectionChange(new Event('selectionchange'));
       let tr = focusChangeTransaction(view.state, focus)
       if (tr) view.dispatch(tr)
       else view.update([])
