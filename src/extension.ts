@@ -33,6 +33,19 @@ export const focusChangeEffect = Facet.define<(state: EditorState, focusing: boo
 export const clipboardInputFilter = Facet.define<(text: string, state: EditorState) => string>()
 export const clipboardOutputFilter = Facet.define<(text: string, state: EditorState) => string>()
 
+export const clipboardCopyHook = Facet.define<
+  (type: "copy" | "cut", data: DataTransfer, info: {
+    text: string,
+    ranges: readonly {from: number, to: number}[],
+    linewise: boolean,
+    state: EditorState
+  }) => void
+>()
+
+export const clipboardPasteHook = Facet.define<
+  (view: EditorView, data: DataTransfer, text: string) => boolean | void
+>()
+
 export const perLineTextDirection = Facet.define<boolean, boolean>({
   combine: values => values.some(x => x)
 })
