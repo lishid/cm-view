@@ -4,7 +4,7 @@ import {ContentView} from "./contentview"
 import {LineView} from "./blockview"
 import {ViewUpdate, PluginValue, clickAddsSelectionRange, dragMovesSelection as dragBehavior, atomicRanges,
         logException, mouseSelectionStyle, PluginInstance, focusChangeEffect, getScrollMargins,
-        clipboardInputFilter, clipboardOutputFilter} from "./extension"
+        clipboardInputFilter, clipboardOutputFilter, clipboardCopyHook, clipboardPasteHook} from "./extension"
 import browser from "./browser"
 import {groupAt, skipAtomsForSelection} from "./cursor"
 import {getSelection, focusPreventScroll, Rect, dispatchKey, scrollableParents} from "./dom"
@@ -713,7 +713,15 @@ handlers.paste = (view: EditorView, event: ClipboardEvent) => {
   view.observer.flush()
   let data = brokenClipboardAPI ? null : event.clipboardData
   if (data) {
-    doPaste(view, data.getData("text/plain") || data.getData("text/uri-list"))
+    let text = data.getData("text/plain") || data.getData("text/uri-list")
+    for (let hook of view.state.facet(clipboardPasteHook)) {
+      try {
+        if (hook(view, data, text)) return true
+      } catch (e) {
+        logException(view.state, e)
+      }
+    }
+    doPaste(view, text)
     return true
   } else {
     capturePaste(view)
@@ -778,6 +786,15 @@ handlers.copy = handlers.cut = (view, event: ClipboardEvent) => {
   if (data) {
     data.clearData()
     data.setData("text/plain", text)
+    let hooks = view.state.facet(clipboardCopyHook)
+    if (hooks.length) {
+      let info = {text, ranges, linewise, state: view.state}
+      let type = event.type as "copy" | "cut"
+      for (let hook of hooks) {
+        try { hook(type, data, info) }
+        catch (e) { logException(view.state, e) }
+      }
+    }
     return true
   } else {
     captureCopy(view, text)
