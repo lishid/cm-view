@@ -16,7 +16,7 @@ import {ViewUpdate, styleModule,
         viewPlugin, ViewPlugin, PluginValue, PluginInstance, decorations, outerDecorations, blockWrappers,
         atomicRanges, scrollMargins, MeasureRequest, editable, inputHandler, focusChangeEffect, perLineTextDirection,
         scrollIntoView, UpdateFlag, ScrollTarget, bidiIsolatedRanges, getIsolatedRanges, scrollHandler,
-        clipboardInputFilter, clipboardOutputFilter} from "./extension"
+        clipboardInputFilter, clipboardOutputFilter, clipboardCopyHook, clipboardPasteHook} from "./extension"
 import {theme, darkTheme, buildTheme, baseThemeID, baseLightID, baseDarkID, lightDarkIDs, baseTheme} from "./theme"
 import {DOMObserver} from "./domobserver"
 import {Attrs, updateAttrs, combineAttrs} from "./attributes"
@@ -994,6 +994,21 @@ export class EditorView {
 
   /// Transform text copied or dragged from the editor.
   static clipboardOutputFilter = clipboardOutputFilter
+
+  /// Functions provided in this facet will be called after the editor
+  /// has placed text on the clipboard during copy or cut. They receive
+  /// the event type, the `DataTransfer` object (which already has
+  /// `text/plain` set), and an info object with the copied `text`,
+  /// `ranges`, `linewise` flag, and editor `state`. Hooks can call
+  /// `data.setData()` to add additional MIME types.
+  static clipboardCopyHook = clipboardCopyHook
+
+  /// Functions provided in this facet will be called before the editor
+  /// handles a paste event. They receive the editor view, the
+  /// `DataTransfer` object, and the plain text that would be pasted.
+  /// Return `true` to indicate the paste was handled and prevent
+  /// the editor's default paste behavior.
+  static clipboardPasteHook = clipboardPasteHook
 
   /// Scroll handlers can override how things are scrolled into view.
   /// If they return `true`, no further handling happens for the
