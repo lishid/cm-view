@@ -950,7 +950,7 @@ export class EditorView {
   }
 
   /// Facet to add a [style
-  /// module](https://github.com/marijnh/style-mod#documentation) to
+  /// module](https://code.haverbeke.berlin/marijn/style-mod#documentation) to
   /// an editor view. The view will ensure that the module is
   /// mounted in its [document
   /// root](#view.EditorView.constructor^config.root).
@@ -1127,7 +1127,7 @@ export class EditorView {
   static scrollMargins = scrollMargins
 
   /// Create a theme extension. The first argument can be a
-  /// [`style-mod`](https://github.com/marijnh/style-mod#documentation)
+  /// [`style-mod`](https://code.haverbeke.berlin/marijn/style-mod#documentation)
   /// style spec providing the styles for the theme. These will be
   /// prefixed with a generated class for the style.
   ///

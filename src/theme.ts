@@ -58,7 +58,7 @@ export const baseTheme = buildTheme("." + baseThemeID, {
     flexShrink: 0,
     display: "block",
     whiteSpace: "pre",
-    wordWrap: "normal", // https://github.com/codemirror/dev/issues/456
+    wordWrap: "normal", // Issue #456
     boxSizing: "border-box",
     minHeight: "100%",
 

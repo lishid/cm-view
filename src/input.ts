@@ -910,8 +910,8 @@ const appliedFirefoxHack: Set<Document> = new Set
 
 // In Firefox, when cut/copy handlers are added to the document, that
 // somehow avoids a bug where those events aren't fired when the
-// selection is empty. See https://github.com/codemirror/dev/issues/1082
-// and https://bugzilla.mozilla.org/show_bug.cgi?id=995961
+// selection is empty. See issue #1082 and
+// https://bugzilla.mozilla.org/show_bug.cgi?id=995961
 function firefoxCopyCutHack(doc: Document) {
   if (!appliedFirefoxHack.has(doc)) {
     appliedFirefoxHack.add(doc)
