@@ -55,12 +55,20 @@ describe("EditorView coords", () => {
     }
   })
 
+  const narrow = EditorView.theme({"&": {width: "10em"}})
+
   it("can find coordinates in line-wrapped text", () => {
-    let cm = tempView("abcd ".repeat(30) + "e", [EditorView.lineWrapping, EditorView.theme({"&": {width: "10em"}})])
+    let cm = tempView("abcd ".repeat(30) + "e", [EditorView.lineWrapping, narrow])
     for (let i = 0; i < cm.state.doc.length; i++) {
       let coords = cm.coordsAtPos(i)!
       ist(cm.posAtCoords({x: coords.left, y: coords.top + 1}), i)
     }
+  })
+
+  it("returns the proper position for coordinates past the end of a wrapped line", () => {
+    let cm = tempView("abcdef ghijklm nopqr", [EditorView.lineWrapping, narrow])
+    let p20 = cm.coordsAtPos(20, -1)!
+    ist(cm.posAtCoords({x: p20.left + 30, y: p20.top + 1}), 20)
   })
 
   it("can find coordinates in decorated line-wrapped text", () => {
@@ -68,7 +76,7 @@ describe("EditorView coords", () => {
     for (let i = 0; i < 30; i++) d.push(cls.range(i * 5, i * 5 + 4))
     let cm = tempView("abcd ".repeat(30) + "e", [
       EditorView.lineWrapping,
-      EditorView.theme({"&": {width: "10em"}}),
+      narrow,
       deco(...d)
     ])
     for (let i = 0; i < cm.state.doc.length; i++) {
@@ -109,7 +117,7 @@ describe("EditorView coords", () => {
   it("can find coordinates in wrapped bidi text", () => {
     let cm = tempView("one اثنان three 444 خمسة ".repeat(3), [
       EditorView.lineWrapping,
-      EditorView.theme({"&": {width: "10em"}}),
+      narrow,
       deco(cls.range(0, 3), cls.range(20, 25))
     ])
     for (let i = 0; i < cm.state.doc.length; i++) {
