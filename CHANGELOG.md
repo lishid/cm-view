@@ -1,3 +1,9 @@
+## 6.41.1 (2026-04-18)
+
+### Bug fixes
+
+Fix an issue where, on some platforms, clicking after the end of a wrapped line would put the cursor in the wrong position.
+
 ## 6.41.0 (2026-04-01)
 
 ### Bug fixes
