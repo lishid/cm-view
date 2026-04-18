@@ -330,11 +330,12 @@ class InlineCoordsScan {
     // Handle the case where closest matched a higher element on the
     // same line as an element below/above the coords
     if (closestDx) {
-      if (above && above.bottom > closestRect.top) {
+      let {top, bottom} = closestRect
+      if (above && above.bottom > (top + top + bottom) / 3) {
         this.y = above.bottom - 1
         return this.scan(positions, getRects)
       }
-      if (below && below.top < closestRect.bottom) {
+      if (below && below.top < (top + bottom + bottom) / 3) {
         this.y = below.top + 1
         return this.scan(positions, getRects)
       }
