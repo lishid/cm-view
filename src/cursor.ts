@@ -261,7 +261,11 @@ class InlineCoordsScan {
   // (including the position after the last piece). For a text tile,
   // these will be character clusters, for a composite tile, these
   // will be child tiles.
-  scan(positions: readonly number[], getRects: (i: number) => DOMRectList | null): {i: number, after: boolean} {
+  scan(
+    positions: readonly number[],
+    getRects: (i: number) => DOMRectList | null,
+    recursed = false
+  ): {i: number, after: boolean} {
     let lo = 0, hi = positions.length - 1, seen = new Set<number>()
     let bidi = this.bidiIn(positions[0], positions[hi])
 
@@ -325,19 +329,19 @@ class InlineCoordsScan {
     if (!closestRect) {
       let side = above && (!below || (this.y - above.bottom < below.top - this.y)) ? above : below!
       this.y = (side.top + side.bottom) / 2
-      return this.scan(positions, getRects)
+      return this.scan(positions, getRects, true)
     }
     // Handle the case where closest matched a higher element on the
     // same line as an element below/above the coords
-    if (closestDx) {
+    if (closestDx && !recursed) {
       let {top, bottom} = closestRect
       if (above && above.bottom > (top + top + bottom) / 3) {
         this.y = above.bottom - 1
-        return this.scan(positions, getRects)
+        return this.scan(positions, getRects, true)
       }
       if (below && below.top < (top + bottom + bottom) / 3) {
         this.y = below.top + 1
-        return this.scan(positions, getRects)
+        return this.scan(positions, getRects, true)
       }
     }
     let ltr = (bidi ? this.dirAt(positions[closestI], 1) : this.baseDir) == Direction.LTR
