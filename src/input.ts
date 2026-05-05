@@ -832,7 +832,7 @@ observers.compositionend = view => {
   view.inputState.compositionFirstChange = null
   if (browser.chrome && browser.android) {
     // Delay flushing for a bit on Android because it'll often fire a
-    // bunch of contradictory changes in a row at end of compositon
+    // bunch of contradictory changes in a row at end of composition
     view.observer.flushSoon()
   } else if (view.inputState.compositionPendingChange) {
     // If we found pending records, schedule a flush.
