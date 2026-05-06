@@ -1,3 +1,15 @@
+## 6.42.0 (2026-05-06)
+
+### Bug fixes
+
+Make sure `posAtCoords` doesn't recurse endlessly.
+
+### New features
+
+The new `activateHover` function can be used to explicitly activate hover tooltips at a given position.
+
+`closeHoverTooltip` now allows you to close a specific hover tooltip.
+
 ## 6.41.1 (2026-04-18)
 
 ### Bug fixes
