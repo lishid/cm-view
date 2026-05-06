@@ -608,6 +608,8 @@ const enum Hover { Time = 300, MaxDist = 6 }
 /// source](#view.hoverTooltip^source).
 export type HoverTooltipSource = (view: EditorView, pos: number, side: -1 | 1) => Tooltip | readonly Tooltip[] | null | Promise<Tooltip | readonly Tooltip[] | null>
 
+const hoverPlugin = Facet.define<ViewPlugin<HoverPlugin>>()
+
 class HoverPlugin {
   lastMove: {x: number, y: number, target: HTMLElement, time: number}
   hoverTimeout = -1
@@ -617,6 +619,7 @@ class HoverPlugin {
   constructor(readonly view: EditorView,
               readonly source: HoverTooltipSource,
               readonly field: StateField<readonly Tooltip[]>,
+              readonly locked: WeakMap<readonly Tooltip[], (tr: Transaction) => boolean>,
               readonly setHover: StateEffectType<readonly Tooltip[]>,
               readonly hoverTime: number) {
     this.lastMove = {x: 0, y: 0, target: view.dom, time: 0}
@@ -625,7 +628,7 @@ class HoverPlugin {
     view.dom.addEventListener("mousemove", this.mousemove = this.mousemove.bind(this))
   }
 
-  update() {
+  update(update: ViewUpdate) {
     if (this.pending) {
       this.pending = null
       clearTimeout(this.restartTimeout)
@@ -667,19 +670,29 @@ class HoverPlugin {
       let rtl = bidi && bidi.dir == Direction.RTL ? -1 : 1
       side = (lastMove.x < posCoords.left ? -rtl : rtl) as -1 | 1
     }
+    this.activateHover(view, pos, side)
+  }
+
+  activateHover(view: EditorView, pos: number, side: -1 | 1, locked?: (tr: Transaction) => boolean) {
     let open = this.source(view, pos, side)
 
-    if ((open as any)?.then) {
+    let done = (value: Tooltip | readonly Tooltip[] | null) => {
+      if (value && !(Array.isArray(value) && !value.length)) {
+        let tooltips = Array.isArray(value) ? value : [value]
+        if (locked) this.locked.set(tooltips, locked)
+        view.dispatch({effects: this.setHover.of(tooltips)})
+      }
+    }
+    if (open && "then" in open) {
       let pending = this.pending = {pos}
       ;(open as Promise<Tooltip | null>).then(result => {
         if (this.pending == pending) {
           this.pending = null
-          if (result && !(Array.isArray(result) && !result.length))
-            view.dispatch({effects: this.setHover.of(Array.isArray(result) ? result : [result])})
+          done(result)
         }
       }, e => logException(view.state, e, "hover tooltip"))
-    } else if (open && !(Array.isArray(open) && !open.length)) {
-      view.dispatch({effects: this.setHover.of(Array.isArray(open) ? open : [open])})
+    } else {
+      done(open)
     }
   }
 
@@ -693,7 +706,7 @@ class HoverPlugin {
     this.lastMove = {x: event.clientX, y: event.clientY, target: event.target as HTMLElement, time: Date.now()}
     if (this.hoverTimeout < 0) this.hoverTimeout = setTimeout(this.checkHover, this.hoverTime)
     let {active, tooltip} = this
-    if (active.length && tooltip && !isInTooltip(tooltip.dom, event) || this.pending) {
+    if (active.length && !this.locked.has(active) && tooltip && !isInTooltip(tooltip.dom, event) || this.pending) {
       let {pos} = active[0] || this.pending!, end = active[0]?.end ?? pos
       if ((pos == end ? this.view.posAtCoords(this.lastMove) != pos
            : !isOverRange(this.view, pos, end, event.clientX, event.clientY, Hover.MaxDist))) {
@@ -707,7 +720,7 @@ class HoverPlugin {
     clearTimeout(this.hoverTimeout)
     this.hoverTimeout = -1
     let {active} = this
-    if (active.length) {
+    if (active.length && !this.locked.has(active)) {
       let {tooltip} = this
       let inTooltip = tooltip && tooltip.dom.contains(event.relatedTarget as HTMLElement)
       if (!inTooltip)
@@ -720,7 +733,8 @@ class HoverPlugin {
   watchTooltipLeave(tooltip: HTMLElement) {
     let watch = (event: MouseEvent) => {
       tooltip.removeEventListener("mouseleave", watch)
-      if (this.active.length && !this.view.dom.contains(event.relatedTarget as HTMLElement))
+      let {active} = this
+      if (active.length && !this.locked.has(active) && !this.view.dom.contains(event.relatedTarget as HTMLElement))
         this.view.dispatch({effects: this.setHover.of([])})
     }
     tooltip.addEventListener("mouseleave", watch)
@@ -786,45 +800,77 @@ export function hoverTooltip(
   } = {}
 ): Extension & {active: StateField<readonly Tooltip[]>} {
   let setHover = StateEffect.define<readonly Tooltip[]>()
+  // This would be better stored in the state field, but we've set
+  // down the type of the field in our interface, so it's indirectly
+  // stored by array identity.
+  let locked = new WeakMap<readonly Tooltip[], (tr: Transaction) => boolean>()
   let hoverState = StateField.define<readonly Tooltip[]>({
     create() { return [] },
 
     update(value, tr) {
+      let lock = locked.get(value)
       if (value.length) {
         if (options.hideOnChange && (tr.docChanged || tr.selection)) value = []
+        else if (lock && lock(tr)) value = []
         else if (options.hideOn) value = value.filter(v => !options.hideOn!(tr, v))
-        if (tr.docChanged) {
-          let mapped = []
-          for (let tooltip of value) {
-            let newPos = tr.changes.mapPos(tooltip.pos, -1, MapMode.TrackDel)
-            if (newPos != null) {
-              let copy: Tooltip = Object.assign(Object.create(null), tooltip)
-              copy.pos = newPos
-              if (copy.end != null) copy.end = tr.changes.mapPos(copy.end)
-              mapped.push(copy)
-            }
+      }
+      if (tr.docChanged && value.length) {
+        let mapped = []
+        for (let tooltip of value) {
+          let newPos = tr.changes.mapPos(tooltip.pos, -1, MapMode.TrackDel)
+          if (newPos != null) {
+            let copy: Tooltip = Object.assign(Object.create(null), tooltip)
+            copy.pos = newPos
+            if (copy.end != null) copy.end = tr.changes.mapPos(copy.end)
+            mapped.push(copy)
           }
-          value = mapped
         }
+        value = mapped
       }
       for (let effect of tr.effects) {
-        if (effect.is(setHover)) value = effect.value
-        if (effect.is(closeHoverTooltipEffect)) value = []
+        if (effect.is(setHover)) { value = effect.value; lock = undefined }
+        if (effect.is(closeHoverTooltipEffect) && !effect.value || effect.value == hoverState) value = []
       }
+      if (value.length && lock) locked.set(value, lock)
       return value
     },
 
     provide: f => showHoverTooltip.from(f)
   })
 
+  const plugin = ViewPlugin.define(view => new HoverPlugin(view, source, hoverState, locked, setHover,
+                                                           options.hoverTime || Hover.Time))
   return {
     active: hoverState,
     extension: [
       hoverState,
-      ViewPlugin.define(view => new HoverPlugin(view, source, hoverState, setHover, options.hoverTime || Hover.Time)),
+      plugin,
+      hoverPlugin.of(plugin),
       showHoverTooltipHost
     ]
   }
+}
+
+/// Activate hover tooltips for the given position and side. If you
+/// provide a specific hover tooltip (the value returned from
+/// [`hoverTooltip`](#view.hoverTooltip)), only that one will be
+/// activated. If not given, all hover tooltips at the given position
+/// are triggered.
+///
+/// Note that tooltips opened this way don't close automatically, and
+/// you'll want to pass an `until` callback or use
+/// [`closeHoverTooltip`](#view.closeHoverTooltip)/[`closeHoverTooltips`](#view.closeHoverTooltips)
+/// to deactivate them.
+export function activateHover(view: EditorView, pos: number, side: -1 | 1, options: {
+  tooltip?: Extension,
+  until?: (tr: Transaction) => boolean
+} = {}) {
+  let plugins = view.state.facet(hoverPlugin).map(p => view.plugin(p)).filter((p): p is HoverPlugin => !!p)
+  if (options.tooltip && (options.tooltip as any).active) {
+    let found = plugins.find(p => p.field == (options.tooltip as any).active)
+    if (found) plugins = [found]
+  }
+  for (let plugin of plugins) plugin.activateHover(view, pos, side, options.until ?? (() => false))
 }
 
 /// Get the active tooltip view for a given tooltip, if available.
@@ -840,10 +886,15 @@ export function hasHoverTooltips(state: EditorState) {
   return state.facet(showHoverTooltip).some(x => x)
 }
 
-const closeHoverTooltipEffect = StateEffect.define<null>()
+const closeHoverTooltipEffect = StateEffect.define<StateField<any> | null>()
 
 /// Transaction effect that closes all hover tooltips.
-export const closeHoverTooltips = closeHoverTooltipEffect.of(null)
+export const closeHoverTooltips: StateEffect<unknown> = closeHoverTooltipEffect.of(null)
+
+/// Transaction effect that closes a specific hover tooltip.
+export function closeHoverTooltip(tooltip: Extension & {active: StateField<readonly Tooltip[]>}): StateEffect<unknown> {
+  return closeHoverTooltipEffect.of(tooltip.active)
+}
 
 /// Tell the tooltip extension to recompute the position of the active
 /// tooltips. This can be useful when something happens (such as a

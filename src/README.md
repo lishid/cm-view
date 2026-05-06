@@ -126,7 +126,11 @@ See also the [tooltip example](../../examples/tooltip/).
 
 @hasHoverTooltips
 
+@activateHover
+
 @closeHoverTooltips
+
+@closeHoverTooltip
 
 @repositionTooltips
 
