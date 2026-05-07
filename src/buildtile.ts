@@ -94,6 +94,7 @@ class TileBuilder {
     if (oldTile) this.cache.reused.set(oldTile, Reused.DOM)
     let text = new TextTile(composition.text, composition.text.nodeValue!)
     text.flags |= TileFlag.Composition
+    this.pos = composition.range.toB
     head.append(text)
   }
 
