@@ -1,3 +1,11 @@
+## 6.42.1 (2026-05-07)
+
+### Bug fixes
+
+Fix a bug where block wrappers could be applied incorrectly during composition.
+
+Fix an issue leading to constant text geometry resets in variable-width fonts.
+
 ## 6.42.0 (2026-05-06)
 
 ### Bug fixes
