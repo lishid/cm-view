@@ -1,3 +1,9 @@
+## 6.43.0 (2026-05-14)
+
+### New features
+
+Block wrappers can now be given a rank to set a specific nesting order for wrappers coming from the same source.
+
 ## 6.42.1 (2026-05-07)
 
 ### Bug fixes
