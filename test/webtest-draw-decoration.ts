@@ -918,6 +918,15 @@ describe("EditorView decoration", () => {
       ist(html(cm), `<navigation><div>ab</div></navigation><section><navigation><div>cd</div></navigation></section><navigation><div>ef</div></navigation>`)
     })
 
+    it("uses rank to determine nesting order within a source", () => {
+      let cm = tempView("a\nb\nc", [
+        EditorView.blockWrappers.of(RangeSet.of([BlockWrapper.create({tagName: "wrap-a", rank: 2}).range(2, 3),
+                                                 BlockWrapper.create({tagName: "wrap-b", rank: 1}).range(2, 3),
+                                                 BlockWrapper.create({tagName: "wrap-c", rank: 3}).range(2, 3)]))
+      ])
+      ist(html(cm), `<div>a</div><wrap-c><wrap-a><wrap-b><div>b</div></wrap-b></wrap-a></wrap-c><div>c</div>`)
+    })
+
     it("doesn't join individual wrappers", () => {
       let cm = wrapEditor("a\nb\nc", [navi.range(0, 5), section.range(2)])
       ist(html(cm), `<navigation><div>a</div><section><div>b</div></section><div>c</div></navigation>`)

@@ -195,7 +195,8 @@ class TileBuilder {
     for (let i = this.wrappers.length - 1 ; i >= 0; i--)
       if (this.wrappers[i].to < this.pos) this.wrappers.splice(i, 1)
     for (let cur = this.blockWrappers; cur.value && cur.from <= this.pos; cur.next()) if (cur.to >= this.pos) {
-      let wrap = new OpenWrapper(cur.from, cur.to, cur.value, cur.rank), i = this.wrappers.length
+      let rank = (cur.rank * 102) + cur.value.rank
+      let wrap = new OpenWrapper(cur.from, cur.to, cur.value, rank), i = this.wrappers.length
       while (i > 0 && (this.wrappers[i - 1].rank - wrap.rank || this.wrappers[i - 1].to - wrap.to) < 0) i--
       this.wrappers.splice(i, 0, wrap)
     }

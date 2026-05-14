@@ -387,6 +387,11 @@ interface BlockWrapperSpec {
   tagName: string
   /// DOM attributes to add to the wrapping element.
   attributes?: {[key: string]: string}
+  /// When multiple overlapping block wrappers are produced by the
+  /// same source, this determines their relative precedence. Lower
+  /// rank wrappers are nested inside higher-rank ones. Should be
+  /// a number between 0 and 100.
+  rank?: number
 }
 
 /// A block wrapper defines a DOM node that wraps lines or other block
@@ -394,7 +399,14 @@ interface BlockWrapperSpec {
 /// widget that starts inside its range, including blocks starting
 /// directly at `from` but not including `to`.
 export class BlockWrapper extends RangeValue {
-  private constructor(readonly tagName: string, readonly attributes: Attrs) {
+  private constructor(
+    /// @internal
+    readonly tagName: string,
+    /// @internal
+    readonly attributes: Attrs,
+    /// @internal
+    readonly rank: number
+  ) {
     super()
   }
 
@@ -406,7 +418,8 @@ export class BlockWrapper extends RangeValue {
   /// Create a block wrapper object with the given tag name and
   /// attributes.
   static create(spec: BlockWrapperSpec) {
-    return new BlockWrapper(spec.tagName, spec.attributes || noAttrs)
+    return new BlockWrapper(spec.tagName, spec.attributes || noAttrs,
+                            spec.rank == null ? 50 : Math.max(0, Math.min(spec.rank, 100)))
   }
 
   /// Create a range set from the given block wrapper ranges.
