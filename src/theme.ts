@@ -87,6 +87,7 @@ export const baseTheme = buildTheme("." + baseThemeID, {
   },
 
   ".cm-layer": {
+    userSelect: "none", // #1708
     position: "absolute",
     left: 0,
     top: 0,
