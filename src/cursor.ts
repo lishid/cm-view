@@ -255,12 +255,11 @@ class InlineCoordsScan {
 
   // Scan through the rectangles for the content of a tile with inline
   // content, looking for one that overlaps the queried position
-  // vertically andis
-  // closest horizontally. The caller is responsible for dividing its
-  // content into N pieces, and pass an array with N+1 positions
-  // (including the position after the last piece). For a text tile,
-  // these will be character clusters, for a composite tile, these
-  // will be child tiles.
+  // vertically and is closest horizontally. The caller is responsible
+  // for dividing its content into N pieces, and pass an array with
+  // N+1 positions (including the position after the last piece). For
+  // a text tile, these will be character clusters, for a composite
+  // tile, these will be child tiles.
   scan(
     positions: readonly number[],
     getRects: (i: number) => DOMRectList | null,
