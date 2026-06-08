@@ -339,4 +339,15 @@ describe("coordsForChar", () => {
     let ch4 = cm.coordsForChar(4)!
     ist(posSide(cm, ch4.left + 100, ch4.top + 1), "4>")
   })
+
+  it("doesn't crash on non-rendered content", () => {
+    let cm = tempView("abc", [
+      EditorView.decorations.of(Decoration.set(Decoration.mark({attributes: {style: "display: none"}}).range(0, 3))),
+      EditorView.theme({
+        ".cm-line": {height: "30px"}
+      })
+    ])
+    let lineRect = cm.contentDOM.querySelector(".cm-line")!.getBoundingClientRect()
+    ist(cm.posAtCoords({x: lineRect.left + 1, y: lineRect.top + 5}), 0)
+  })
 })
