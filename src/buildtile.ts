@@ -418,6 +418,7 @@ export class TileUpdate {
         LOG_builder && console.log("Emit composition", posB, "to", next.toB, "over", posA, "to", next.toA)
         this.forward(next.fromA, composition.range.fromA, composition.range.fromA < composition.range.toA ? 1 : -1)
         this.emit(posB, composition.range.fromB)
+        this.builder.flushBuffer()
         this.cache.clear() // Must not reuse DOM across composition
         this.builder.addComposition(composition, compositionContext!)
         this.text.skip(composition.range.toB - composition.range.fromB)
@@ -431,8 +432,8 @@ export class TileUpdate {
       posB = next.toB
       posA = next.toA
     }
-    LOG_builder && console.log(">>> " + this.builder.root)
     if (this.builder.curLine) this.builder.endLine()
+    LOG_builder && console.log(">>> " + this.builder.root)
     return this.builder.root
   }
 
