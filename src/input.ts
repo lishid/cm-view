@@ -25,11 +25,11 @@ export class InputState {
   // avoid messing up the virtual keyboard state.
   pendingIOSKey: undefined | {key: string, keyCode: number} | KeyboardEvent = undefined
 
-  /// When enabled (>-1), tab presses are not given to key handlers,
-  /// leaving the browser's default behavior. If >0, the mode expires
-  /// at that timestamp, and any other keypress clears it.
-  /// Esc enables temporary tab focus mode for two seconds when not
-  /// otherwise handled.
+  // When enabled (>-1), tab presses are not given to key handlers,
+  // leaving the browser's default behavior. If >0, the mode expires
+  // at that timestamp, and any other keypress clears it.
+  // Esc enables temporary tab focus mode for two seconds when not
+  // otherwise handled.
   tabFocusMode: number = -1
 
   lastSelectionOrigin: string | null = null
