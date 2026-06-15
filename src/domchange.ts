@@ -46,7 +46,8 @@ export class DOMChange {
       // Chrome will put the selection *inside* them, confusing
       // posFromDOM
       let vp = view.viewport
-      if ((browser.ios || browser.chrome) && curSel.main.empty && head != anchor &&
+      if ((browser.ios || browser.chrome) && head != anchor &&
+          Math.min(head, anchor) <= curSel.main.from && Math.max(head, anchor) >= curSel.main.to &&
           (vp.from > 0 || vp.to < view.state.doc.length)) {
         let from = Math.min(head, anchor), to = Math.max(head, anchor)
         let offFrom = vp.from - from, offTo = vp.to - to
