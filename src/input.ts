@@ -23,7 +23,11 @@ export class InputState {
   // On iOS, some keys need to have their default behavior happen
   // (after which we retroactively handle them and reset the DOM) to
   // avoid messing up the virtual keyboard state.
-  pendingIOSKey: undefined | {key: string, keyCode: number} | KeyboardEvent = undefined
+  pendingIOSKey: {
+    key: string,
+    keyCode: number,
+    mods: {ctrlKey: boolean, altKey: boolean, metaKey: boolean, shiftKey: boolean}
+  } | undefined = undefined
 
   // When enabled (>-1), tab presses are not given to key handlers,
   // leaving the browser's default behavior. If >0, the mode expires
@@ -146,11 +150,16 @@ export class InputState {
     // state. So we let it go through, and then, in
     // applyDOMChange, notify key handlers of it and reset to
     // the state they produce.
-    let pending
-    if (browser.ios && !(event as any).synthetic && !event.altKey && !event.metaKey && !event.shiftKey &&
-        ((pending = PendingKeys.find(key => key.keyCode == event.keyCode)) && !event.ctrlKey ||
+    if (browser.ios && !(event as any).synthetic && !event.altKey && !event.metaKey &&
+        (PendingKeys.some(key => key.keyCode == event.keyCode) && !event.ctrlKey ||
          EmacsyPendingKeys.indexOf(event.key) > -1 && event.ctrlKey)) {
-      this.pendingIOSKey = pending || event
+      let mods = {ctrlKey: event.ctrlKey, altKey: event.altKey, metaKey: event.metaKey, shiftKey: event.shiftKey}
+      // On iOS with autocapitalize, drop the shift modifier for these
+      // keys, since it will be set at the start of every sentence.
+      if (mods.shiftKey && browser.ios && !/^(off|none)$/.test(this.view.contentDOM.autocapitalize) &&
+          iosVirtualKeyboardOpen(this.view.win))
+        mods.shiftKey = false
+      this.pendingIOSKey = {key: event.key, keyCode: event.keyCode, mods}
       setTimeout(() => this.flushIOSKey(), 250)
       return true
     }
@@ -164,7 +173,7 @@ export class InputState {
     // This looks like an autocorrection before Enter
     if (key.key == "Enter" && change && change.from < change.to && /^\S+$/.test(change.insert.toString())) return false
     this.pendingIOSKey = undefined
-    return dispatchKey(this.view.contentDOM, key.key, key.keyCode, key instanceof KeyboardEvent ? key : undefined)
+    return dispatchKey(this.view.contentDOM, key.key, key.keyCode, key.mods)
   }
 
   ignoreDuringComposition(event: Event): boolean {
@@ -198,6 +207,11 @@ export class InputState {
   destroy() {
     if (this.mouseSelection) this.mouseSelection.destroy()
   }
+}
+
+function iosVirtualKeyboardOpen(win: Window) {
+  if (!win.visualViewport) return false
+  return win.visualViewport.height * win.visualViewport.scale / win.document.documentElement.clientHeight < 0.85
 }
 
 type HandlerFunction = (view: EditorView, event: Event) => boolean | void

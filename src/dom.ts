@@ -294,7 +294,10 @@ export function textRange(node: Text, from: number, to = from) {
   return range
 }
 
-export function dispatchKey(elt: HTMLElement, name: string, code: number, mods?: KeyboardEvent): boolean {
+export function dispatchKey(
+  elt: HTMLElement, name: string, code: number,
+  mods?: {ctrlKey: boolean, altKey: boolean, shiftKey: boolean, metaKey: boolean}
+): boolean {
   let options: KeyboardEventInit = {key: name, code: name, keyCode: code, which: code, cancelable: true}
   if (mods)
     ({altKey: options.altKey, ctrlKey: options.ctrlKey, shiftKey: options.shiftKey, metaKey: options.metaKey} = mods)
