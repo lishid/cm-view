@@ -1,3 +1,15 @@
+## 6.43.2 (2026-06-23)
+
+### Bug fixes
+
+Fix using select-all from the native context menu on Chrome Android.
+
+On iOS when autocapitalize is enabled, ignore the shift modifier on virtual keyboard Enter or Backspace presses.
+
+Work around an issue where Chrome Android scrolled the editor up when tapping an empty line to focus it.
+
+Create undirectional selection ranges for double and triple clicks.
+
 ## 6.43.1 (2026-06-09)
 
 ### Bug fixes
