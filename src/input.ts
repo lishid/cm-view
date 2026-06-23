@@ -573,7 +573,7 @@ function rangeForClick(view: EditorView, pos: number, bias: -1 | 1, type: number
     let visual = view.docView.lineAt(pos, bias), line = view.state.doc.lineAt(visual ? visual.posAtEnd : pos)
     let from = visual ? visual.posAtStart : line.from, to = visual ? visual.posAtEnd : line.to
     if (to < view.state.doc.length && to == line.to) to++
-    return EditorSelection.range(from, to)
+    return EditorSelection.undirectionalRange(from, to)
   }
 }
 
@@ -635,7 +635,7 @@ handlers.dragstart = (view, event: DragEvent) => {
     let tile = view.docView.tile.nearest(event.target as HTMLElement)
     if (tile && tile.isWidget()) {
       let from = tile.posAtStart, to = from + tile.length
-      if (from >= range.to || to <= range.from) range = EditorSelection.range(from, to)
+      if (from >= range.to || to <= range.from) range = EditorSelection.undirectionalRange(from, to)
     }
   }
   let {inputState} = view

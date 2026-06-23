@@ -32,7 +32,7 @@ export function groupAt(state: EditorState, pos: number, bias: 1 | -1 = 1) {
     if (categorize(line.text.slice(to, next)) != cat) break
     to = next
   }
-  return EditorSelection.range(from + line.from, to + line.from)
+  return EditorSelection.undirectionalRange(from + line.from, to + line.from)
 }
 
 function posAtCoordsImprecise(view: EditorView, contentRect: Rect, block: BlockInfo, x: number, y: number) {
@@ -163,8 +163,12 @@ export function skipAtomsForSelection(atoms: readonly RangeSet<any>[], sel: Edit
     } else {
       let from = skipAtomicRanges(atoms, range.from, -1)
       let to = skipAtomicRanges(atoms, range.to, 1)
-      if (from != range.from || to != range.to)
-        updated = EditorSelection.range(range.from == range.anchor ? from : to, range.from == range.head ? from : to)
+      if (from != range.from || to != range.to) {
+        if (range.undirectional)
+          updated = EditorSelection.undirectionalRange(range.from, range.to)
+        else
+          updated = EditorSelection.range(range.from == range.anchor ? from : to, range.from == range.head ? from : to)
+      }
     }
     if (updated) {
       if (!ranges) ranges = sel.ranges.slice()
