@@ -559,8 +559,8 @@ export class TileUpdate {
         }
       }
     })
-    b.addLineStartIfNotCovered(pendingLineAttrs)
     this.openWidget = openEnd > markCount
+    if (!this.openWidget) b.addLineStartIfNotCovered(pendingLineAttrs)
     this.openMarks = openEnd
   }
 
