@@ -1,3 +1,9 @@
+## 6.43.3 (2026-06-25)
+
+### Bug fixes
+
+Fix a bug in the content DOM update code that could corrupt the editor state.
+
 ## 6.43.2 (2026-06-23)
 
 ### Bug fixes
