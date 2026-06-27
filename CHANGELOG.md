@@ -1,3 +1,9 @@
+## 6.43.4 (2026-06-27)
+
+### Bug fixes
+
+Fix a regression in DOM document updates that could corrupt the tile tree and cause crashes.
+
 ## 6.43.3 (2026-06-25)
 
 ### Bug fixes
