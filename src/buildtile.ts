@@ -557,6 +557,7 @@ export class TileUpdate {
           }
           pendingLineAttrs = null
         }
+        markCount = active.length
       }
     })
     this.openWidget = openEnd > markCount
