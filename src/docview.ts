@@ -319,7 +319,7 @@ export class DocView {
 
   domAtPos(pos: number, side: number): DOMPos {
     let {tile, offset} = this.tile.resolveBlock(pos, side)
-    if (tile.isWidget()) return tile.domPosFor(pos, side)
+    if (tile.isWidget()) return tile.domPosFor(offset, side)
     return tile.domIn(offset, side)
   }
 
