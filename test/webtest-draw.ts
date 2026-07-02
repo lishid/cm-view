@@ -353,7 +353,7 @@ describe("EditorView drawing", () => {
     cm.dispatch({changes: {from: 0, to: 3}})
     ist(cm.contentDOM.firstChild, line1)
     cm.dispatch({changes: {from: 0, to: 1}})
-    ist(cm.contentDOM.firstChild, line2)
+    ist(cm.contentDOM.firstChild, line1)
   })
 
   it("splits long stretches of text into chunks", () => {

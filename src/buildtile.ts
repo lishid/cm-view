@@ -303,8 +303,8 @@ class TileCache {
   find<Cls extends Tile>(cls: new (...args: any) => Cls, test?: (a: Cls) => boolean, type: Reused = Reused.DOM): Cls | null {
     let i: number = (cls as any).bucket
     let bucket = this.buckets[i], off = this.index[i]
-    for (let j = bucket.length - 1; j >= 0; j--) {
-      // Look at the most recently added items first (last-in, first-out)
+    for (let j = 0; j < bucket.length; j++) {
+      // Look at the most oldest items first (first-in, first-out)
       let index = (j + off) % bucket.length, tile = bucket[index] as Cls
       if ((!test || test(tile)) && !this.reused.has(tile)) {
         bucket.splice(index, 1)
