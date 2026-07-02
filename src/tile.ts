@@ -310,7 +310,8 @@ export class LineTile extends CompositeTile {
         if (end >= pos) {
           if (child.isComposite()) {
             scan(child, pos - off)
-          } else if ((!after || after.isHidden && (side > 0 || forCoords && onSameLine(after, child))) &&
+          } else if ((!after || after.isHidden && (
+                      side > 0 && !(after.flags & TileFlag.After) || forCoords && onSameLine(after, child))) &&
                      (end > pos || (child.flags & TileFlag.After))) {
             after = child
             afterOff = pos - off
