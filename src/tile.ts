@@ -403,20 +403,16 @@ export class TextTile extends Tile {
   coordsIn(pos: number, side: number) {
     let length = this.dom.nodeValue!.length
     if (pos > length) pos = length
-    let from = pos, to = pos, flatten = 0
-    if (pos == 0 && side < 0 || pos == length && side >= 0) {
-      if (!(browser.chrome || browser.gecko)) { // These browsers reliably return valid rectangles for empty ranges
-        if (pos) { from--; flatten = 1 } // FIXME this is wrong in RTL text
-        else if (to < length) { to++; flatten = -1 }
-      }
-    } else {
-      if (side < 0) from--; else if (to < length) to++
+    let from = pos, to = pos
+    if (!(pos == 0 && side < 0 || pos == length && side >= 0)) {
+      if (side < 0) from--
+      else if (to < length) to++
     }
     let rects = textRange(this.dom, from, to).getClientRects()
     if (!rects.length) return null
-    let rect = rects[(flatten ? flatten < 0 : side >= 0) ? 0 : rects.length - 1]
-    if (browser.safari && !flatten && rect.width == 0) rect = Array.prototype.find.call(rects, r => r.width) || rect
-    return flatten ? flattenRect(rect!, flatten < 0) : rect || null
+    let rect = rects[side >= 0 ? 0 : rects.length - 1]
+    if (browser.safari && rect.width == 0) rect = Array.prototype.find.call(rects, r => r.width) || rect
+    return rect || null
   }
 
   static of(text: string, dom?: Text) {
