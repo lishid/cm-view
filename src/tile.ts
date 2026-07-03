@@ -109,7 +109,7 @@ export abstract class Tile {
 
   covers(side: -1 | 1) { return true }
 
-  coordsIn(pos: number, side: number): Rect | null { return null }
+  coordsIn(pos: number, side: number, rtl?: boolean): Rect | null { return null }
 
   domPosFor(off: number, side: number) {
     let index = domIndex(this.dom)
@@ -328,10 +328,10 @@ export class LineTile extends CompositeTile {
     return target ? {tile: target, offset: target == before ? beforeOff : afterOff} : null
   }
 
-  coordsIn(pos: number, side: number): Rect | null {
+  coordsIn(pos: number, side: -1 | 1, rtl?: boolean): Rect | null {
     let found = this.resolveInline(pos, side, true)
     if (!found) return fallbackRect(this)
-    return found.tile.coordsIn(Math.max(0, found.offset), side)
+    return found.tile.coordsIn(Math.max(0, found.offset), side, rtl)
   }
 
   domIn(pos: number, side: number) {
@@ -400,19 +400,23 @@ export class TextTile extends Tile {
 
   toString() { return JSON.stringify(this.text) }
 
-  coordsIn(pos: number, side: number) {
+  coordsIn(pos: number, side: number, rtl?: boolean) {
     let length = this.dom.nodeValue!.length
     if (pos > length) pos = length
-    let from = pos, to = pos
-    if (!(pos == 0 && side < 0 || pos == length && side >= 0)) {
-      if (side < 0) from--
-      else if (to < length) to++
+    let from = pos, to = pos, flatten = 0
+    if (pos == 0 && side < 0 || pos == length && side >= 0) {
+      if (!(browser.chrome || browser.gecko)) { // These browsers reliably return valid rectangles for empty ranges
+        if (pos) { from--; flatten = 1 }
+        else if (to < length) { to++; flatten = -1 }
+      }
+    } else {
+      if (side < 0) from--; else if (to < length) to++
     }
     let rects = textRange(this.dom, from, to).getClientRects()
     if (!rects.length) return null
-    let rect = rects[side >= 0 ? 0 : rects.length - 1]
-    if (browser.safari && rect.width == 0) rect = Array.prototype.find.call(rects, r => r.width) || rect
-    return rect || null
+    let rect = rects[(flatten ? flatten < 0 : side >= 0) ? 0 : rects.length - 1]
+    if (browser.safari && !flatten && rect.width == 0) rect = Array.prototype.find.call(rects, r => r.width) || rect
+    return rtl == null ? rect : flattenRect(rect, (flatten ? flatten > 0 : side < 0) == rtl)
   }
 
   static of(text: string, dom?: Text) {
@@ -496,7 +500,10 @@ export class WidgetBufferTile extends Tile {
 
   get overrideDOMText() { return DocText.empty }
 
-  coordsIn(pos: number): Rect | null { return this.dom.getBoundingClientRect() }
+  coordsIn(pos: number, side: -1 | 1, rtl?: boolean): Rect | null {
+    let rect = this.dom.getBoundingClientRect()
+    return rtl == null ? rect : flattenRect(rect, (side > 0) == rtl)
+  }
 }
 
 // Represents a position in the tile tree.

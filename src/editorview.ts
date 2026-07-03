@@ -4,7 +4,7 @@ import {StyleModule, StyleSpec} from "style-mod"
 
 import {DocView} from "./docview"
 import {InputState, focusChangeTransaction, isFocusChange} from "./input"
-import {Rect, focusPreventScroll, flattenRect, getRoot, ScrollStrategy,
+import {Rect, focusPreventScroll, getRoot, ScrollStrategy,
         isScrolledToBottom, dispatchKey} from "./dom"
 import {posAtCoords, moveByChar, moveToLineBoundary, byGroup, moveVertically, skipAtoms} from "./cursor"
 import {BlockInfo} from "./heightmap"
@@ -771,11 +771,9 @@ export class EditorView {
   /// another strategy to get reasonable coordinates).
   coordsAtPos(pos: number, side: -1 | 1 = 1): Rect | null {
     this.readMeasured()
-    let rect = this.docView.coordsAt(pos, side)
-    if (!rect || rect.left == rect.right) return rect
     let line = this.state.doc.lineAt(pos), order = this.bidiSpans(line)
     let span = order[BidiSpan.find(order, pos - line.from, -1, side)]
-    return flattenRect(rect, (span.dir == Direction.LTR) == (side > 0))
+    return this.docView.coordsAt(pos, side, span.dir == Direction.RTL)
   }
 
   /// Return the rectangle around a given character. If `pos` does not

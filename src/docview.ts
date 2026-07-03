@@ -343,13 +343,15 @@ export class DocView {
     return before && side < 0 || !after ? before!.domIn(beforeOff, side) : after.domIn(afterOff, side)
   }
 
-  coordsAt(pos: number, side: number): Rect | null {
+  // Get the coord of the element at the given side of the given
+  // position. If rtl is given, flatten it using that text direction.
+  coordsAt(pos: number, side: -1 | 1, rtl?: boolean): Rect | null {
     let {tile, offset} = this.tile.resolveBlock(pos, side)
     if (tile.isWidget()) {
       if (tile.widget instanceof BlockGapWidget) return null
       return tile.coordsInWidget(offset, side, true)
     }
-    return tile.coordsIn(offset, side)
+    return tile.coordsIn(offset, side, rtl)
   }
 
   lineAt(pos: number, side: number) {
@@ -525,7 +527,7 @@ export class DocView {
     }
 
     let {range} = target
-    let rect = this.coordsAt(range.head, range.assoc ?? (range.empty ? 0 : range.head > range.anchor ? -1 : 1)), other
+    let rect = this.coordsAt(range.head, range.assoc || (range.head > range.anchor ? -1 : 1)), other
     if (!rect) return
     if (!range.empty && (other = this.coordsAt(range.anchor, range.anchor > range.head ? -1 : 1)))
       rect = {left: Math.min(rect.left, other.left), top: Math.min(rect.top, other.top),

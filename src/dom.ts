@@ -88,8 +88,10 @@ export interface Rect {
   readonly bottom: number
 }
 
-export function flattenRect(rect: Rect, left: boolean) {
-  let x = left ? rect.left : rect.right
+export function flattenRect(rect: Rect, toLeft: boolean) {
+  let {left, right} = rect
+  if (left == right) return rect
+  let x = toLeft ? left : right
   return {left: x, right: x, top: rect.top, bottom: rect.bottom}
 }
 

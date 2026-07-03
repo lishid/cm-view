@@ -334,6 +334,14 @@ describe("coordsForChar", () => {
     ist(posSide(cm, ch3.left - 1, ch3.top + 2), "4<")
   })
 
+  it("produces correct results when side points out of an RTL node", () => {
+    let cm = tempView("فرخة")
+    let s1 = cm.coordsAtPos(0, -1)!, s2 = cm.coordsAtPos(0, 1)!
+    ist(Math.abs(s1.left - s2.left), 0.1, "<")
+    let e1 = cm.coordsAtPos(4, 1)!, e2 = cm.coordsAtPos(4, -1)!
+    ist(Math.abs(e1.left - e2.left), 0.1, "<")
+  })
+
   it("can handle nested elements with direction breaks", () => {
     let cm = tempView("one فرخة", EditorView.decorations.of(Decoration.set(Decoration.mark({class: "foo"}).range(0, 8))))
     let ch4 = cm.coordsForChar(4)!
