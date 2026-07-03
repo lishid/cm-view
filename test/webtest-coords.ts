@@ -325,7 +325,7 @@ describe("coordsForChar", () => {
     let ch0 = cm.coordsForChar(0)!
     ist(posSide(cm, ch0.right - 1, ch0.top + 2), "0>")
     ist(posSide(cm, ch0.right + 1, ch0.top + 2), "0>")
-    ist(posSide(cm, ch0.left + 1, ch0.top + 2), "1<")
+    ist(posSide(cm, ch0.left + 1.5, ch0.top + 2), "1<")
     ist(posSide(cm, ch0.left - 1, ch0.top + 2), "1>")
     let ch3 = cm.coordsForChar(3)!
     ist(posSide(cm, ch3.right + 1, ch3.top + 2), "3<")
