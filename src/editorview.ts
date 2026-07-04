@@ -488,6 +488,7 @@ export class EditorView {
                 this.viewState.lineBlockAt(scrollAnchorPos).top
               let diff = (newAnchorHeight - scrollAnchorHeight) / this.scaleY
               if ((diff > 1 || diff < -1) &&
+                  !(browser.ios && this.inputState.lastIOSMomentumScroll > Date.now() - 100) &&
                   (scroll == this.scrollDOM || this.hasFocus ||
                    Math.max(this.inputState.lastWheelEvent, this.inputState.lastTouchTime) > Date.now() - 100)) {
                 scrollOffset = scrollOffset + diff

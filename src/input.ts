@@ -12,6 +12,7 @@ import {applyDOMChangeInner} from "./domchange"
 export class InputState {
   lastKeyCode: number = 0
   lastKeyTime: number = 0
+  touchActive = false
   lastTouchTime = 0
   lastTouchX = 0
   lastTouchY = 0
@@ -28,6 +29,10 @@ export class InputState {
     keyCode: number,
     mods: {ctrlKey: boolean, altKey: boolean, metaKey: boolean, shiftKey: boolean}
   } | undefined = undefined
+  // Set to a time stap by scroll events when touch isn't active on
+  // iOS, to work around an issue where Safari will abort the scroll
+  // momentum if we set scrollTop
+  lastIOSMomentumScroll = 0
 
   // When enabled (>-1), tab presses are not given to key handlers,
   // leaving the browser's default behavior. If >0, the mode expires
@@ -508,8 +513,10 @@ function doPaste(view: EditorView, input: string) {
 }
 
 observers.scroll = view => {
-  view.inputState.lastScrollTop = view.scrollDOM.scrollTop
-  view.inputState.lastScrollLeft = view.scrollDOM.scrollLeft
+  let iState = view.inputState
+  iState.lastScrollTop = view.scrollDOM.scrollTop
+  iState.lastScrollLeft = view.scrollDOM.scrollLeft
+  if (browser.ios && !iState.touchActive) iState.lastIOSMomentumScroll = Date.now()
 }
 
 observers.wheel = observers.mousewheel = view => {
@@ -524,6 +531,7 @@ handlers.keydown = (view, event: KeyboardEvent) => {
 
 observers.touchstart = (view, e: TouchEvent) => {
   let iState = view.inputState, touch = e.targetTouches[0]
+  iState.touchActive = true
   iState.lastTouchTime = Date.now()
   if (touch) {
     iState.lastTouchX = touch.clientX
@@ -534,6 +542,10 @@ observers.touchstart = (view, e: TouchEvent) => {
 
 observers.touchmove = view => {
   view.inputState.setSelectionOrigin("select.pointer")
+}
+
+observers.touchend = (view, e: TouchEvent) => {
+  view.inputState.touchActive = false
 }
 
 handlers.mousedown = (view, event: MouseEvent) => {
