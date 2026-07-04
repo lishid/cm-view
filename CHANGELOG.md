@@ -1,3 +1,15 @@
+## 6.43.5 (2026-07-04)
+
+### Bug fixes
+
+Fix an issue what would cause `domAtPos` to return positions on the wrong side of widgets.
+
+Fix an issue that could cause the DOM cursor to be drawn on the wrong side of a collapsing decoration.
+
+Don't return off-by-one coordinate positions at the edge of right-to-left text node in Safari.
+
+Don't abort momentum scrolling on iOS by stabilizing the scroll position.
+
 ## 6.43.4 (2026-06-27)
 
 ### Bug fixes
