@@ -510,7 +510,7 @@ export class TileUpdate {
 
   emit(from: number, to: number) {
     let pendingLineAttrs: Attrs | null = null
-    let b = this.builder, markCount = 0
+    let b = this.builder, markCount = -1
 
     let openEnd = RangeSet.spans(this.decorations, from, to, {
       point: (from, to, deco, active: MarkDecoration[], openStart, index) => {
@@ -560,7 +560,7 @@ export class TileUpdate {
         markCount = active.length
       }
     })
-    this.openWidget = openEnd > markCount
+    if (markCount > -1) this.openWidget = openEnd > markCount
     if (!this.openWidget) b.addLineStartIfNotCovered(pendingLineAttrs)
     this.openMarks = openEnd
   }

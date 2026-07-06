@@ -1,4 +1,5 @@
-import {EditorView, Decoration, BlockWrapper, DecorationSet, WidgetType, ViewPlugin, BlockInfo, BlockType} from "@codemirror/view"
+import {EditorView, Decoration, BlockWrapper, DecorationSet, WidgetType,
+        ViewPlugin, BlockInfo, BlockType, highlightActiveLine} from "@codemirror/view"
 import {tempView, requireFocus} from "./tempview.js"
 import {EditorSelection, StateEffect, StateField, Range, RangeSet, Text} from "@codemirror/state"
 import ist from "ist"
@@ -205,6 +206,17 @@ describe("EditorView decoration", () => {
     ist(marks.every(m => cm.contentDOM.contains(m)))
     cm.dispatch({changes: [{from: 1, to: 3}, {from: 6, to: 7, insert: "-"}]})
     ist(marks.every(m => cm.contentDOM.contains(m)))
+  })
+
+  it("doesn't get confused by marked sections that don't draw anything", () => {
+    let mark = Decoration.mark({class: "c", inclusiveEnd: true})
+    let cm = tempView(`abc\n\ndef\nghi\njkl\n\nmno\npqr\n`, [
+      EditorView.decorations.of(v => Decoration.set(mark.range(0, v.state.doc.length))),
+      highlightActiveLine()
+    ])
+    cm.dispatch({selection: {anchor: 5, head: 17}})
+    cm.dispatch({selection: {anchor: 18}})
+    ist(cm.docView.tile.length, cm.state.doc.length)
   })
 
   it("properly handles random decorations and changes", () => {
