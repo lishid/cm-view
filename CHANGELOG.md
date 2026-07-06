@@ -1,3 +1,9 @@
+## 6.43.6 (2026-07-06)
+
+### Bug fixes
+
+Fix another tile tree corruption bug that could occur on zero-length content updates.
+
 ## 6.43.5 (2026-07-04)
 
 ### Bug fixes
