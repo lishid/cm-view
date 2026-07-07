@@ -239,6 +239,8 @@ export const baseTheme = buildTheme("." + baseThemeID, {
     backgroundColor: "#f5f5f5",
     color: "black"
   },
+  ".cm-panels-top": { top: "0" },
+  ".cm-panels-bottom": { bottom: "0" },
   "&light .cm-panels-top": {
     borderBottom: "1px solid #ddd"
   },

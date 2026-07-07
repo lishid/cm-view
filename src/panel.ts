@@ -154,7 +154,6 @@ class PanelGroup {
     if (!this.dom) {
       this.dom = document.createElement("div")
       this.dom.className = this.top ? "cm-panels cm-panels-top" : "cm-panels cm-panels-bottom"
-      this.dom.style[this.top ? "top" : "bottom"] = "0"
       let parent = this.container || this.view.dom
       parent.insertBefore(this.dom, this.top ? parent.firstChild : null)
     }
