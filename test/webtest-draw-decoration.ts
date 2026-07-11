@@ -659,6 +659,20 @@ describe("EditorView decoration", () => {
         })])
       }, "Decorations that replace line breaks may not be specified via plugins")
     })
+
+    it("doesn't get confused by replaced ranges changing length", () => {
+      let collapse = Decoration.replace({})
+      let cm = tempView("## abc\n\n## abc", EditorView.decorations.of(view => {
+        let len = view.state.doc.length, mark = len == 14 ? 3 : 4
+        return Decoration.set([collapse.range(0, mark),
+                               collapse.range(len - 3 - mark, len - 3)])
+      }))
+      cm.dispatch({changes: [
+        {from: 0, to: 2, insert: "###"},
+        {from: 8, to: 10, insert: "###"}
+      ]})
+      ist(cm.contentDOM.querySelectorAll(".cm-line").length, 3)
+    })
   })
 
   describe("line attributes", () => {

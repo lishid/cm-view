@@ -525,17 +525,19 @@ export class TilePointer {
     let {tile, index, beforeBreak, parents} = this
     while (dist || side > 0) {
       if (!tile.isComposite()) {
-        if (index == tile.length) {
+        let len = tile.length
+        if (index < len && dist) {
+          let take = Math.min(dist, len - index)
+          if (walker) walker.skip(tile, index, index + take)
+          dist -= take
+          index += take
+        }
+        if (index == len) {
           beforeBreak = !!tile.breakAfter
           ;({tile, index} = parents.pop()!)
           index++
         } else if (!dist) {
           break
-        } else {
-          let take = Math.min(dist, tile.length - index)
-          if (walker) walker.skip(tile, index, index + take)
-          dist -= take
-          index += take
         }
       } else if (beforeBreak) {
         if (!dist) break
