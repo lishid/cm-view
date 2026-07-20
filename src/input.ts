@@ -161,8 +161,7 @@ export class InputState {
       let mods = {ctrlKey: event.ctrlKey, altKey: event.altKey, metaKey: event.metaKey, shiftKey: event.shiftKey}
       // On iOS with autocapitalize, drop the shift modifier for these
       // keys, since it will be set at the start of every sentence.
-      if (mods.shiftKey && browser.ios && !/^(off|none)$/.test(this.view.contentDOM.autocapitalize) &&
-          iosVirtualKeyboardOpen(this.view.win))
+      if (mods.shiftKey && browser.ios && !/^(off|none)$/.test(this.view.contentDOM.autocapitalize))
         mods.shiftKey = false
       this.pendingIOSKey = {key: event.key, keyCode: event.keyCode, mods}
       setTimeout(() => this.flushIOSKey(), 250)
