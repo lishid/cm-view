@@ -299,6 +299,9 @@ export class LineTile extends CompositeTile {
   get domAttrs() { return this.attrs }
 
   // Find the tile associated with a given position in this line.
+  // Side -2/2 is handled specially, in that it allows the position
+  // returned to be before (-2) or after (2) widgets that would always
+  // be after/before a cursor position.
   resolveInline(pos: number, side: number, forCoords?: boolean): {
     tile: TextTile | WidgetTile | WidgetBufferTile,
     offset: number
@@ -312,10 +315,10 @@ export class LineTile extends CompositeTile {
             scan(child, pos - off)
           } else if ((!after || after.isHidden && (
                       side > 0 && !(after.flags & TileFlag.After) || forCoords && onSameLine(after, child))) &&
-                     (end > pos || (child.flags & TileFlag.After))) {
+                     (end > pos || (child.flags & TileFlag.After) && side <= 1)) {
             after = child
             afterOff = pos - off
-          } else if (off < pos || (child.flags & TileFlag.Before) && !child.isHidden) {
+          } else if (off < pos || (child.flags & TileFlag.Before) && !child.isHidden && side >= -1) {
             before = child
             beforeOff = pos - off
           }
