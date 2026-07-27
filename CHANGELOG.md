@@ -1,3 +1,15 @@
+## 6.43.7 (2026-07-27)
+
+### Bug fixes
+
+Make the panel container top/bottom style a regular rule, rather than an inline style.
+
+Fix an issue where widgets changing length could break content updates.
+
+Fix incorrectly drawn selection when a line wrap point lies between widgets.
+
+Work around regression in Firefox 153 breaking selection hiding.
+
 ## 6.43.6 (2026-07-06)
 
 ### Bug fixes
