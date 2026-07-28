@@ -289,21 +289,20 @@ class InlineCoordsScan {
     search: while (lo < hi) {
       let dist = hi - lo, mid = (lo + hi) >> 1
       adjust: if (seen.has(mid)) {
-        let scan = lo + Math.floor(Math.random() * dist)
-        for (let i = 0; i < dist; i++) {
+        for (let i = 1; i < dist; i++) {
+          let scan = mid + i
+          if (scan >= hi) scan -= dist
           if (!seen.has(scan)) {
             mid = scan
             break adjust
           }
-          scan++
-          if (scan == hi) scan = lo // Wrap around
         }
         break search // No index found, we're done
       }
       seen.add(mid)
-      let rects = getRects(mid)
+      let rects = getRects(mid), side = 0
       if (rects) for (let i = 0; i < rects.length; i++) {
-        let rect = rects[i], side = 0
+        let rect = rects[i]
         // Ignore empty rectangles when there are other rectangles
         if (rect.width == 0 && rects.length > 1) continue
         if (rect.bottom < this.y) {
@@ -322,10 +321,10 @@ class InlineCoordsScan {
           }
           if (off) side = (off < 0) == (this.baseDir == Direction.LTR) ? -1 : 1
         }
-        // Narrow binary search when it is safe to do so
-        if (side == -1 && (!bidi || this.baseDirAt(positions[mid], 1))) hi = mid
-        else if (side == 1 && (!bidi || this.baseDirAt(positions[mid + 1], -1))) lo = mid + 1
       }
+      // Narrow binary search when it is safe to do so
+      if (side == -1 && (!bidi || this.baseDirAt(positions[mid], 1))) hi = mid
+      else if (side == 1 && (!bidi || this.baseDirAt(positions[mid + 1], -1))) lo = mid + 1
     }
     // If no element with y overlap is found, find the nearest element
     // on the y axis, move this.y into it, and retry the scan.
