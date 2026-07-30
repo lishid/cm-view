@@ -122,7 +122,8 @@ const selectionLayer = layer({
   class: "cm-selectionLayer"
 })
 
-const selectionBg = browser.gecko && browser.gecko_version >= 153 ? "#ffffff01" : "transparent"
+// https://discuss.codemirror.net/t/firefox-153-ignores-transparent-selection-styling/9838
+const selectionBg = browser.gecko && browser.gecko_version == 153 ? "#ffffff01" : "transparent"
 
 const hideNativeSelection = Prec.highest(EditorView.theme({
   ".cm-line": {
