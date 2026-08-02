@@ -257,6 +257,22 @@ export class DOMSelectionState implements SelectionRange {
   }
 }
 
+export function getScrollStack(target: Element | null) {
+  let stack: {node: Element, left: number, top: number}[] = []
+  for (let cur: Node | null = target; cur; cur = cur.nodeType == 11 ? (cur as ShadowRoot).host : cur.parentNode) {
+    if (cur.nodeType == 1)
+      stack.push({node: cur as Element, left: (cur as Element).scrollLeft, top: (cur as Element).scrollTop})
+  }
+  return stack
+}
+
+export function restoreScrollStack(stack: {node: Element, left: number, top: number}[], vert = true) {
+  for (let {node, left, top} of stack) {
+    if (vert && node.scrollTop != top) node.scrollTop = top
+    if (node.scrollLeft != left) node.scrollLeft = left
+  }
+}
+
 let preventScrollSupported: null | false | {preventScroll: boolean} = null
 // Safari 26 breaks preventScroll support
 if (browser.safari && browser.safari_version >= 26) preventScrollSupported = false
@@ -266,11 +282,7 @@ export function focusPreventScroll(dom: HTMLElement) {
   if ((dom as any).setActive) return (dom as any).setActive() // in IE
   if (preventScrollSupported) return dom.focus(preventScrollSupported)
 
-  let stack = []
-  for (let cur: Node | null = dom; cur; cur = cur.parentNode) {
-    stack.push(cur, (cur as any).scrollTop, (cur as any).scrollLeft)
-    if (cur == cur.ownerDocument) break
-  }
+  let stack = getScrollStack(dom)
   dom.focus(preventScrollSupported == null ? {
     get preventScroll() {
       preventScrollSupported = {preventScroll: true}
@@ -279,11 +291,7 @@ export function focusPreventScroll(dom: HTMLElement) {
   } : undefined)
   if (!preventScrollSupported) {
     preventScrollSupported = false
-    for (let i = 0; i < stack.length;) {
-      let elt = stack[i++] as HTMLElement, top = stack[i++] as number, left = stack[i++] as number
-      if (elt.scrollTop != top) elt.scrollTop = top
-      if (elt.scrollLeft != left) elt.scrollLeft = left
-    }
+    restoreScrollStack(stack)
   }
 }
 

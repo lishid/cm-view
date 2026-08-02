@@ -3,7 +3,8 @@ import browser from "./browser"
 import {Decoration, DecorationSet, addRange, BlockWrapper, WidgetType} from "./decoration"
 import {clientRectsFor, isEquivalentPosition, Rect, scrollRectIntoView,
         getSelection, hasSelection, textRange, DOMSelectionState,
-        textNodeBefore, textNodeAfter, DOMPos, maxOffset} from "./dom"
+        textNodeBefore, textNodeAfter, DOMPos, maxOffset,
+        getScrollStack, restoreScrollStack} from "./dom"
 import {ViewUpdate, decorations as decorationsFacet, outerDecorations, ChangedRange, editable, blockWrappers,
         ScrollTarget, scrollHandler, getScrollMargins, logException, setEditContextFormatting} from "./extension"
 import {EditorView} from "./editorview"
@@ -551,10 +552,14 @@ export class DocView {
     // can affect it. So this tries to kludge around the problem by
     // calling scrollIntoView on the scroll target's line.
     if (window.visualViewport && window.innerHeight - window.visualViewport.height > 1 &&
-        (rect.top > window.pageYOffset + window.visualViewport.offsetTop + window.visualViewport.height ||
-         rect.bottom < window.pageYOffset + window.visualViewport.offsetTop)) {
+        (rect.top > window.visualViewport.offsetTop + window.visualViewport.height ||
+         rect.bottom < window.visualViewport.offsetTop)) {
       let line = this.view.docView.lineAt(range.head, 1)
-      if (line) line.dom.scrollIntoView({block: "nearest"})
+      if (line) {
+        let stack = getScrollStack(line.dom)
+        line.dom.scrollIntoView({block: "nearest"})
+        restoreScrollStack(stack, false)
+      }
     }
   }
 
