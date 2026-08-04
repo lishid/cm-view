@@ -1,3 +1,11 @@
+## 6.43.8 (2026-08-04)
+
+### Bug fixes
+
+Fix an issue that could cause identical `posAtCoords` queries to return different results.
+
+Fix an issue where scrolling a position into view vertically on Android or iOS could cause horizontal scrolling motion.
+
 ## 6.43.7 (2026-07-27)
 
 ### Bug fixes
