@@ -289,8 +289,9 @@ export const baseTheme = buildTheme("." + baseThemeID, {
   },
 
   ".cm-highlightSpace": {
-    backgroundImage: "radial-gradient(circle at 50% 55%, #aaa 20%, transparent 5%)",
-    backgroundPosition: "center",
+    background: "radial-gradient(circle at 50% 55%, #aaa 20%, transparent 0) no-repeat",
+    backgroundSize: ".4em",
+    backgroundPosition: "calc(min(50%, 0px)) center"
   },
 
   ".cm-highlightTab": {
