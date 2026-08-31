@@ -594,9 +594,8 @@ export class ViewState {
   }
 
   getScrollOffset() {
-    let base = this.scrollParent == this.view.scrollDOM ? this.scrollParent.scrollTop
+    return this.scrollParent == this.view.scrollDOM ? this.scrollParent.scrollTop * this.scaleY
       : (this.scrollParent ? this.scrollParent.getBoundingClientRect().top : 0) - this.view.contentDOM.getBoundingClientRect().top
-    return base * this.scaleY
   }
 
   scrollAnchorAt(scrollOffset: number) {
