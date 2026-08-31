@@ -1,3 +1,11 @@
+## 6.43.10 (2026-08-31)
+
+### Bug fixes
+
+Make sure highlighted spaces don't look odd when the browser merges them during composition.
+
+Avoid scroll position jumping during editor scaling by properly taking scale into account when stabilizing the vertical position.
+
 ## 6.43.9 (2026-08-16)
 
 ### Bug fixes
