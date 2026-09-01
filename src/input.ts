@@ -174,7 +174,7 @@ export class InputState {
 
   flushIOSKey(change?: {from: number, to: number, insert: Text}) {
     let key = this.pendingIOSKey
-    if (!key) return false
+    if (!key || this.view.observer.pendingRecords().length) return false
     // This looks like an autocorrection before Enter
     if (key.key == "Enter" && change && change.from < change.to && /^\S+$/.test(change.insert.toString())) return false
     this.pendingIOSKey = undefined
