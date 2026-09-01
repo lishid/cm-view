@@ -165,7 +165,7 @@ export class InputState {
           iosVirtualKeyboardOpen(this.view.win))
         mods.shiftKey = false
       this.pendingIOSKey = {key: event.key, keyCode: event.keyCode, mods}
-      setTimeout(() => this.flushIOSKey(), 250)
+      setTimeout(() => this.flushIOSKey(), 50)
       return true
     }
     if (event.keyCode != 229) this.view.observer.forceFlush()
