@@ -1,3 +1,11 @@
+## 6.43.11 (2026-09-03)
+
+### Bug fixes
+
+Speed up handling of Enter/Backspace on iOS in cases where the browser's native behavior is to do nothing.
+
+Fix the patch that avoids a crash in `posAtCoords` for non-rendered elements.
+
 ## 6.43.10 (2026-08-31)
 
 ### Bug fixes
