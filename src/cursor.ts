@@ -329,7 +329,7 @@ class InlineCoordsScan {
     // If no element with y overlap is found, find the nearest element
     // on the y axis, move this.y into it, and retry the scan.
     if (!closestRect) {
-      if (!below && !above) return {i: positions[0], after: false}
+      if (!below && !above) return {i: 0, after: false}
       let side = above && (!below || (this.y - above.bottom < below.top - this.y)) ? above : below!
       this.y = (side.top + side.bottom) / 2
       return this.scan(positions, getRects, true)
