@@ -63,17 +63,20 @@ export function blockAt(view: EditorView, pos: number, side: -1 | 1): BlockInfo 
 }
 
 export function moveToLineBoundary(view: EditorView, start: SelectionRange, forward: boolean, includeWrap: boolean) {
-  let line = blockAt(view, start.head, start.assoc || -1)
-  let coords = !includeWrap || line.type != BlockType.Text || !(view.lineWrapping || line.widgetLineBreaks) ? null
-    : view.coordsAtPos(start.assoc < 0 && start.head > line.from ? start.head - 1 : start.head)
+  let block = blockAt(view, start.head, start.assoc || -1)
+  let coords = !includeWrap || block.type != BlockType.Text || !(view.lineWrapping || block.widgetLineBreaks) ? null
+    : view.coordsAtPos(start.assoc < 0 && start.head > block.from ? start.head - 1 : start.head)
   if (coords) {
     let editorRect = view.dom.getBoundingClientRect()
-    let direction = view.textDirectionAt(line.from)
+    let direction = view.textDirectionAt(block.from)
     let pos = view.posAtCoords({x: forward == (direction == Direction.LTR) ? editorRect.right - 1 : editorRect.left + 1,
                                 y: (coords.top + coords.bottom) / 2})
     if (pos != null) return EditorSelection.cursor(pos, forward ? -1 : 1)
   }
-  return EditorSelection.cursor(forward ? line.to : line.from, forward ? -1 : 1)
+  let line = view.state.doc.lineAt(start.head)
+  if (forward ? line.to == block.to : line.from == block.from)
+    return view.visualLineSide(line, forward)
+  return EditorSelection.cursor(forward ? block.to : block.from, forward ? -1 : 1)
 }
 
 export function moveByChar(view: EditorView, start: SelectionRange, forward: boolean,
