@@ -80,11 +80,12 @@ class TileBuilder {
         if (last.dom != mark.dom) last.setDOM(freeNode(mark.dom))
         head = last
       } else {
+        let {dom} = mark
         if (this.cache.reused.get(mark)) {
           let tile = Tile.get(mark.dom)
-          if (tile) tile.setDOM(freeNode(mark.dom))
+          if (tile) dom = freeNode(mark.dom)
         }
-        let nw = MarkTile.of(mark.mark, mark.dom)
+        let nw = MarkTile.of(mark.mark, dom)
         head.append(nw)
         head = nw
       }
