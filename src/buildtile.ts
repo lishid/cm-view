@@ -587,12 +587,13 @@ export class TileUpdate {
         line = tile
       else if (tile instanceof BlockWrapperTile)
         {} // Ignore
-      else if (parent.nodeName == "DIV" && !line && parent != this.view.contentDOM)
+      else if (parent.nodeName == "DIV" && !line)
         line = new LineTile(parent, lineBaseAttrs)
       else if (!line)
         marks.push(MarkTile.of(new MarkDecoration({tagName: parent.nodeName.toLowerCase(), attributes: getAttrs(parent)}), parent))
     }
-    return {line: line!, marks}
+    if (!line) return null
+    return {line, marks}
   }
 }
 

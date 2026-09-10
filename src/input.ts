@@ -844,6 +844,13 @@ observers.compositionstart = observers.compositionupdate = view => {
   if (view.inputState.compositionFirstChange == null)
     view.inputState.compositionFirstChange = true
   if (view.inputState.composing < 0) {
+    let {main} = view.state.selection
+    if (!main.empty && view.lineBlockAt(main.from).from != view.lineBlockAt(main.to).from) {
+      view.dispatch({
+        changes: view.state.selection.ranges.filter(r => !r.empty).map(r => ({from: r.from, to: r.to})),
+        userEvent: "input"
+      })
+    }
     // FIXME possibly set a timeout to clear it again on Android
     view.inputState.composing = 0
   }
