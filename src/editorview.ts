@@ -171,6 +171,7 @@ export class EditorView {
   measureScheduled: number = -1
   /// @internal
   measureRequests: MeasureRequest<any>[] = []
+  private clearAnnouncement = -1
 
   /// Construct a new view. You'll want to either provide a `parent`
   /// option, or put `view.dom` into your document after creating a
@@ -552,8 +553,14 @@ export class EditorView {
   private showAnnouncements(trs: readonly Transaction[]) {
     let first = true
     for (let tr of trs) for (let effect of tr.effects) if (effect.is(EditorView.announce)) {
-      if (first) this.announceDOM.textContent = ""
-      first = false
+      if (first) {
+        this.announceDOM.textContent = ""
+        this.win.clearTimeout(this.clearAnnouncement)
+        this.clearAnnouncement = this.win.setTimeout(() => {
+          this.announceDOM.textContent = "\u00a0"
+        }, 200)
+        first = false
+      }
       let div = this.announceDOM.appendChild(document.createElement("div"))
       div.textContent = effect.value
     }
@@ -883,6 +890,7 @@ export class EditorView {
     this.docView.destroy()
     this.dom.remove()
     this.observer.destroy()
+    this.win.clearTimeout(this.clearAnnouncement)
     if (this.measureScheduled > -1) this.win.cancelAnimationFrame(this.measureScheduled)
     this.destroyed = true
   }
