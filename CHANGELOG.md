@@ -1,3 +1,15 @@
+## 6.43.12 (2026-09-15)
+
+### Bug fixes
+
+Make `visualLineSide` use bidi information when looking for the start or end of line with no wrap points.
+
+Fix a bug in updating the DOM for marks around an active composition that could sometimes try to use the same DOM node twice.
+
+Work around an issue on Firefox where a composition might be started outside of a line container.
+
+Make sure repeated screen reader announcement messages don't get swallowed by VoiceOver.
+
 ## 6.43.11 (2026-09-03)
 
 ### Bug fixes
