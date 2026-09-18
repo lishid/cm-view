@@ -495,13 +495,13 @@ function doPaste(view: EditorView, input: string) {
       lastLine = line.from
       let insert = state.toText((byLine ? text.line(i++).text : input) + state.lineBreak)
       return {changes: {from: line.from, insert},
-              range: EditorSelection.cursor(range.from + insert.length)}
+              range: EditorSelection.cursor(range.from + insert.length, -1)}
     })
   } else if (byLine) {
     changes = state.changeByRange(range => {
       let line = text.line(i++)
       return {changes: {from: range.from, to: range.to, insert: line.text},
-              range: EditorSelection.cursor(range.from + line.length)}
+              range: EditorSelection.cursor(range.from + line.length, -1)}
     })
   } else {
     changes = state.replaceSelection(text)

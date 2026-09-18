@@ -338,7 +338,9 @@ function selectionPoints(view: EditorView) {
 function selectionFromPoints(points: DOMPoint[], base: number): EditorSelection | null {
   if (points.length == 0) return null
   let anchor = points[0].pos, head = points.length == 2 ? points[1].pos : anchor
-  return anchor > -1 && head > -1 ? EditorSelection.single(anchor + base, head + base) : null
+  return anchor < 0 || head < 0 ? null
+    : anchor == head ? EditorSelection.create([EditorSelection.cursor(head + base, -1)])
+    : EditorSelection.single(anchor + base, head + base)
 }
 
 export function sameSelPos(selection: EditorSelection, range: SelectionRange) {
