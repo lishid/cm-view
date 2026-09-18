@@ -335,17 +335,19 @@ describe("coordsForChar", () => {
   })
 
   it("returns the outside of the line points out of a non-dominant span at line end/start (LTR)", () => {
-    let cm = tempView("فرخة\nfooفرخة")
+    let cm = tempView("فرخة\nfooفرخة\nفرخةfoo")
     ist(Math.abs(cm.coordsAtPos(0, -1)!.left - cm.coordsAtPos(4, -1)!.left), 0.1, "<")
     ist(Math.abs(cm.coordsAtPos(4, 1)!.left - cm.coordsAtPos(0, 1)!.left), 0.1, "<")
     ist(Math.abs(cm.coordsAtPos(12, 1)!.left - cm.coordsAtPos(8, 1)!.left), 0.1, "<")
+    ist(Math.abs(cm.coordsAtPos(13, -1)!.left - cm.coordsAtPos(17, -1)!.left), 0.1, "<")
   })
 
   it("returns the outside of the line points out of a non-dominant span at line end/start (RTL)", () => {
-    let cm = tempView("abcd\nfooفرخة", EditorView.theme({".cm-content": {direction: "rtl"}}))
+    let cm = tempView("abcd\nfooفرخة\nفرخةfoo", EditorView.theme({".cm-content": {direction: "rtl"}}))
     ist(Math.abs(cm.coordsAtPos(0, -1)!.left - cm.coordsAtPos(4, -1)!.left), 0.1, "<")
     ist(Math.abs(cm.coordsAtPos(4, 1)!.left - cm.coordsAtPos(0, 1)!.left), 0.1, "<")
     ist(Math.abs(cm.coordsAtPos(5, -1)!.left - cm.coordsAtPos(8, -1)!.left), 0.1, "<")
+    ist(Math.abs(cm.coordsAtPos(20, 1)!.left - cm.coordsAtPos(17, 1)!.left), 0.1, "<")
   })
 
   it("can handle nested elements with direction breaks", () => {

@@ -81,14 +81,17 @@ function tests(dir: Direction) {
           let order = __test.computeOrder(cases[i], dir, [])
           let line = Text.of([cases[i]]).line(1)
           let seen = new Set<number>()
-          let span = order[forward ? 0 : order.length - 1]
-          let pos = EditorSelection.cursor(span.side(!forward, dir), span.forward(forward, dir) ? 1 : -1)
+          let pos = forward ? EditorSelection.cursor(0, -1) : EditorSelection.cursor(line.length, 1)
           for (;;) {
             let id = pos.head * (pos.assoc < 0 ? -1 : 1)
             ist(!seen.has(id))
             seen.add(id)
             let next = __test.moveVisually(line, order, dir, pos, forward)
-            if (!next) break
+            if (!next) {
+              ist(pos.head, forward ? line.length : 0)
+              ist(pos.assoc, forward ? 1 : -1)
+              break
+            }
             pos = next
           }
           ist(seen.size, cases[i].length + 1)

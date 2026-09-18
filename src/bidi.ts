@@ -412,10 +412,12 @@ export let movedOver = ""
 // This implementation moves strictly visually, without concern for a
 // traversal visiting every logical position in the string. It will
 // still do so for simple input, but situations like multiple isolates
-// with the same level next to each other, or text going against the
-// main dir at the end of the line, will make some positions
+// with the same level next to each other will make some positions
 // unreachable with this motion. Each visible cursor position will
-// correspond to the lower-level bidi span that touches it.
+// correspond to the lower-level bidi span that touches it, except
+// positions at start/end of line, when the text there isn't in the
+// dominant direction, which will use a cursor at the start/end with
+// an an assoc pointing out of the line instead.
 //
 // The alternative would be to solve an order globally for a given
 // line, making sure that it includes every position, but that would
@@ -424,8 +426,17 @@ export let movedOver = ""
 // people. (And would generally be a lot more complicated.)
 export function moveVisually(line: Line, order: readonly BidiSpan[], dir: Direction,
                              start: SelectionRange, forward: boolean) {
-  let startIndex = start.head - line.from
-  let spanI = BidiSpan.find(order, startIndex, start.bidiLevel ?? -1, start.assoc)
+  if (!line.length) return null
+  let startIndex = start.head - line.from, spanI: number | undefined
+  if (start.head == line.from && start.assoc < 0) { // Start of line.
+    if (!forward) return null
+    startIndex = order[spanI = 0].side(false, dir)
+  } else if (start.head == line.to && start.assoc > 0) { // End of line
+    if (forward) return null
+    startIndex = order[spanI = order.length - 1].side(true, dir)
+  } else {
+    spanI = BidiSpan.find(order, startIndex, start.bidiLevel ?? -1, start.assoc)
+  }
   let span = order[spanI], spanEnd = span.side(forward, dir)
   // End of span
   if (startIndex == spanEnd) {
@@ -440,10 +451,14 @@ export function moveVisually(line: Line, order: readonly BidiSpan[], dir: Direct
   movedOver = line.text.slice(Math.min(startIndex, nextIndex), Math.max(startIndex, nextIndex))
 
   let nextSpan = spanI == (forward ? order.length - 1 : 0) ? null : order[spanI + (forward ? 1 : -1)]
-  if (nextSpan && nextIndex == spanEnd && nextSpan.level + (forward ? 0 : 1) < span.level)
-    return EditorSelection.cursor(nextSpan.side(!forward, dir) + line.from,
-                                  nextSpan.forward(forward, dir) ? 1 : -1,
-                                  nextSpan.level)
+  if (nextIndex == spanEnd) {
+    // End of line
+    if (!nextSpan) return forward ? EditorSelection.cursor(line.to, 1) : EditorSelection.cursor(line.from, -1)
+    if (nextSpan.level + (forward ? 0 : 1) < span.level)
+      return EditorSelection.cursor(nextSpan.side(!forward, dir) + line.from,
+                                    nextSpan.forward(forward, dir) ? 1 : -1,
+                                    nextSpan.level)
+  }
   return EditorSelection.cursor(nextIndex + line.from, span.forward(forward, dir) ? -1 : 1, span.level)
 }
 
