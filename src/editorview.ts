@@ -783,6 +783,19 @@ export class EditorView {
     this.readMeasured()
     let line = this.state.doc.lineAt(pos), order = this.bidiSpans(line)
     let span = order[BidiSpan.find(order, pos - line.from, -1, side)]
+    // For positions at start/end of line, if the side points out of
+    // the line and the text there isn't in the dominant dir, return
+    // the position of the outermost character on the line.
+    if (line.length && (pos == line.from && side < 0 || pos == line.to && side > 0) &&
+        span.dir != this.textDirectionAt(line.from)) {
+      if (pos == line.to) {
+        pos = line.from + span.from
+        side = 1
+      } else {
+        pos = line.from + span.to
+        side = -1
+      }
+    }
     return this.docView.coordsAt(pos, side, span.dir == Direction.RTL)
   }
 
