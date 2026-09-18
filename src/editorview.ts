@@ -695,14 +695,10 @@ export class EditorView {
     return skipAtoms(this, start, moveByChar(this, start, forward, initial => byGroup(this, start.head, initial)))
   }
 
-  /// Get the cursor position visually at the start or end of a line.
-  /// Note that this may differ from the _logical_ position at its
-  /// start or end (which is simply at `line.from`/`line.to`) if text
-  /// at the start or end goes against the line's base text direction.
+  /// **\[DEPRECATED]** Get the cursor position visually at the start
+  /// or end of a line.
   visualLineSide(line: Line, end: boolean) {
-    let order = this.bidiSpans(line), dir = this.textDirectionAt(line.from)
-    let span = order[end ? order.length - 1 : 0]
-    return EditorSelection.cursor(span.side(end, dir) + line.from, span.forward(!end, dir) ? 1 : -1)
+    return end ? EditorSelection.cursor(line.to, 1) : EditorSelection.cursor(line.from, -1)
   }
 
   /// Move to the next line boundary in the given direction. If

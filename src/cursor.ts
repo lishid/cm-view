@@ -73,9 +73,6 @@ export function moveToLineBoundary(view: EditorView, start: SelectionRange, forw
                                 y: (coords.top + coords.bottom) / 2})
     if (pos != null) return EditorSelection.cursor(pos, forward ? -1 : 1)
   }
-  let line = view.state.doc.lineAt(start.head)
-  if (forward ? line.to == block.to : line.from == block.from)
-    return view.visualLineSide(line, forward)
   return EditorSelection.cursor(forward ? block.to : block.from, forward ? -1 : 1)
 }
 
@@ -90,7 +87,7 @@ export function moveByChar(view: EditorView, start: SelectionRange, forward: boo
       char = "\n"
       line = view.state.doc.line(line.number + (forward ? 1 : -1))
       spans = view.bidiSpans(line)
-      next = view.visualLineSide(line, !forward)
+      next = forward ? EditorSelection.cursor(line.from, -1) : EditorSelection.cursor(line.to, 1)
     }
     if (!check) {
       if (!by) return next
