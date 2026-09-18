@@ -507,9 +507,9 @@ class HeightMapBranch extends HeightMap {
       if (to >= rightOffset) this.right.forEachLine(from, to, oracle, rightTop, rightOffset, f)
     } else {
       let mid = this.lineAt(rightOffset, QueryType.ByPos, oracle, top, offset)
-      if (from < mid.from) this.left.forEachLine(from, mid.from - 1, oracle, top, offset, f)
+      if (from < mid.from) this.left.forEachLine(from, Math.min(to, mid.from - 1), oracle, top, offset, f)
       if (mid.to >= from && mid.from <= to) f(mid)
-      if (to > mid.to) this.right.forEachLine(mid.to + 1, to, oracle, rightTop, rightOffset, f)
+      if (to > mid.to) this.right.forEachLine(Math.max(from, mid.to + 1), to, oracle, rightTop, rightOffset, f)
     }
   }
 
