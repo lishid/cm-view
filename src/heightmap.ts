@@ -236,9 +236,9 @@ export abstract class HeightMap {
       }
     }
 
-    let brk = 0
-    if (nodes[i - 1] == null) { brk = 1; i-- }
-    else if (nodes[i] == null) { brk = 1; j++ }
+    let brk = false
+    if (nodes[i - 1] == null) { brk = true; i-- }
+    else if (nodes[i] == null) { brk = true; j++ }
     return new HeightMapBranch(HeightMap.of(nodes.slice(0, i)), brk, HeightMap.of(nodes.slice(j)))
   }
 }
@@ -472,12 +472,14 @@ class HeightMapGap extends HeightMap {
 class HeightMapBranch extends HeightMap {
   size: number
 
-  constructor(public left: HeightMap, brk: number, public right: HeightMap) {
-    super(left.length + brk + right.length, left.height + right.height, brk | (left.outdated || right.outdated ? Flag.Outdated : 0))
+  constructor(public left: HeightMap, brk: boolean, public right: HeightMap) {
+    super(left.length + (brk ? 1 : 0) + right.length, left.height + right.height, (brk ? Flag.Break : 0) | (left.outdated || right.outdated ? Flag.Outdated : 0))
     this.size = left.size + right.size
   }
 
-  get break() { return this.flags & Flag.Break }
+  // Returns 1 if there is a line break between this.left and
+  // this.right, 0 otherwise.
+  get break(): 0 | 1 { return (this.flags & Flag.Break) as 0 | 1 }
 
   blockAt(height: number, oracle: HeightOracle, top: number, offset: number) {
     let mid = top + this.left.height
