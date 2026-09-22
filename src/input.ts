@@ -164,8 +164,8 @@ export class InputState {
       if (mods.shiftKey && browser.ios && !/^(off|none)$/.test(this.view.contentDOM.autocapitalize) &&
           iosVirtualKeyboardOpen(this.view.win))
         mods.shiftKey = false
-      this.pendingIOSKey = {key: event.key, keyCode: event.keyCode, mods}
-      setTimeout(() => this.flushIOSKey(), 50)
+      let pending = this.pendingIOSKey = {key: event.key, keyCode: event.keyCode, mods}
+      setTimeout(() => { if (this.pendingIOSKey == pending) this.flushIOSKey() }, 50)
       return true
     }
     if (event.keyCode != 229) this.view.observer.forceFlush()
