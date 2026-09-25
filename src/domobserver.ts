@@ -385,7 +385,7 @@ export class DOMObserver {
 
     if (readSelection) this.readSelectionRange()
 
-    let domChange = this.readChange()
+    let selChange = this.selectionChanged, domChange = this.readChange()
     if (!domChange) {
       this.view.requestMeasure()
       return false
@@ -393,8 +393,7 @@ export class DOMObserver {
     let startState = this.view.state
     let handled = applyDOMChange(this.view, domChange)
     // The view wasn't updated but DOM/selection changes were seen. Reset the view.
-    if (this.view.state == startState &&
-        (domChange.domChanged || domChange.newSel && !sameSelPos(this.view.state.selection, domChange.newSel.main)))
+    if (this.view.state == startState && (domChange.domChanged || selChange))
       this.view.update([])
     return handled
   }

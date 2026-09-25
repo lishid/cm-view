@@ -68,7 +68,9 @@ function scanFor(node: Node, off: number, targetNode: Node, targetOff: number, d
       node = parent
     } else if (node.nodeType == 1) {
       node = node.childNodes[off + (dir < 0 ? -1 : 0)]
-      if (node.nodeType == 1 && (node as HTMLElement).contentEditable == "false") return false
+      if (node.nodeType == 1 &&
+          (node.nodeName == "IMG" || node.nodeName == "BR" || (node as HTMLElement).contentEditable == "false"))
+        return false
       off = dir < 0 ? maxOffset(node) : 0
     } else {
       return false
