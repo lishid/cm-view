@@ -2,7 +2,8 @@ import browser from "./browser"
 import {Tile} from "./tile"
 import {EditorView} from "./editorview"
 import {editable, ViewUpdate, setEditContextFormatting, MeasureRequest} from "./extension"
-import {hasSelection, getSelection, DOMSelectionState, isEquivalentPosition, dispatchKey, atElementStart} from "./dom"
+import {hasSelection, getSelection, DOMSelectionState, isEquivalentPosition, dispatchKey,
+        atElementStart, isElt} from "./dom"
 import {DOMChange, applyDOMChange, applyDOMChangeInner, findDiff, sameSelPos} from "./domchange"
 import type {EditContext} from "./editcontext"
 import {Decoration} from "./decoration"
@@ -232,14 +233,14 @@ export class DOMObserver {
   listenForScroll() {
     this.parentCheck = -1
     let i = 0, changed: HTMLElement[] | null = null
-    for (let dom = this.dom as any; dom;) {
-      if (dom.nodeType == 1) {
+    for (let dom = this.dom as Node; dom;) {
+      if (isElt(dom)) {
         if (!changed && i < this.scrollTargets.length && this.scrollTargets[i] == dom) i++
         else if (!changed) changed = this.scrollTargets.slice(0, i)
         if (changed) changed.push(dom)
-        dom = dom.assignedSlot || dom.parentNode
+        dom = dom.assignedSlot || dom.parentNode!
       } else if (dom.nodeType == 11) { // Shadow root
-        dom = dom.host
+        dom = (dom as ShadowRoot).host
       } else {
         break
       }

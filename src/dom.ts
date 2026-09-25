@@ -1,5 +1,8 @@
 import browser from "./browser"
 
+export const isElt = (node: Node): node is HTMLElement => node.nodeType == 1
+export const isText = (node: Node): node is Text => node.nodeType == 3
+
 export function getSelection(root: DocumentOrShadowRoot): Selection | null {
   let target
   // Browsers differ on whether shadow roots have a getSelection
@@ -30,10 +33,10 @@ export function hasSelection(dom: HTMLElement, selection: SelectionRange): boole
 }
 
 export function clientRectsFor(dom: Node) {
-  if (dom.nodeType == 3)
-    return textRange(dom as Text, 0, dom.nodeValue!.length).getClientRects()
-  else if (dom.nodeType == 1)
-    return (dom as HTMLElement).getClientRects()
+  if (isText(dom))
+    return textRange(dom, 0, dom.nodeValue!.length).getClientRects()
+  else if (isElt(dom))
+    return dom.getClientRects()
   else
     return [] as any as DOMRectList
 }
@@ -54,7 +57,7 @@ export function domIndex(node: Node): number {
 }
 
 export function isBlockElement(node: Node): boolean {
-  return node.nodeType == 1 && /^(DIV|P|LI|UL|OL|BLOCKQUOTE|DD|DT|H\d|SECTION|PRE)$/.test(node.nodeName)
+  return isElt(node) && /^(DIV|P|LI|UL|OL|BLOCKQUOTE|DD|DT|H\d|SECTION|PRE)$/.test(node.nodeName)
 }
 
 function scanFor(node: Node, off: number, targetNode: Node, targetOff: number, dir: -1 | 1): boolean {
@@ -63,13 +66,13 @@ function scanFor(node: Node, off: number, targetNode: Node, targetOff: number, d
     if (off == (dir < 0 ? 0 : maxOffset(node))) {
       if (node.nodeName == "DIV") return false
       let parent = node.parentNode
-      if (!parent || parent.nodeType != 1) return false
+      if (!parent || !isElt(parent)) return false
       off = domIndex(node) + (dir < 0 ? 0 : 1)
       node = parent
-    } else if (node.nodeType == 1) {
+    } else if (isElt(node)) {
       node = node.childNodes[off + (dir < 0 ? -1 : 0)]
-      if (node.nodeType == 1 &&
-          (node.nodeName == "IMG" || node.nodeName == "BR" || (node as HTMLElement).contentEditable == "false"))
+      if (isElt(node) &&
+          (node.nodeName == "IMG" || node.nodeName == "BR" || node.contentEditable == "false"))
         return false
       off = dir < 0 ? maxOffset(node) : 0
     } else {
@@ -79,7 +82,7 @@ function scanFor(node: Node, off: number, targetNode: Node, targetOff: number, d
 }
 
 export function maxOffset(node: Node): number {
-  return node.nodeType == 3 ? node.nodeValue!.length : node.childNodes.length
+  return isText(node) ? node.nodeValue!.length : node.childNodes.length
 }
 
 /// Basic rectangle type.
@@ -122,8 +125,8 @@ export function scrollRectIntoView(dom: HTMLElement, rect: Rect, side: -1 | 1,
                                    xMargin: number, yMargin: number, ltr: boolean) {
   let doc = dom.ownerDocument!, win = doc.defaultView || window
 
-  for (let cur: any = dom, stop = false; cur && !stop;) {
-    if (cur.nodeType == 1) { // Element
+  for (let cur: Node = dom, stop = false; cur && !stop;) {
+    if (isElt(cur)) { // Element
       let bounding: Rect, top = cur == doc.body
       let scaleX = 1, scaleY = 1
       if (top) {
@@ -131,7 +134,7 @@ export function scrollRectIntoView(dom: HTMLElement, rect: Rect, side: -1 | 1,
       } else {
         if (/^(fixed|sticky)$/.test(getComputedStyle(cur).position)) stop = true
         if (cur.scrollHeight <= cur.clientHeight && cur.scrollWidth <= cur.clientWidth) {
-          cur = cur.assignedSlot || cur.parentNode
+          cur = cur.assignedSlot || cur.parentNode!
           continue
         }
         let rect = cur.getBoundingClientRect()
@@ -203,9 +206,9 @@ export function scrollRectIntoView(dom: HTMLElement, rect: Rect, side: -1 | 1,
           rect.left < bounding.left || rect.right > bounding.right)
         rect = {left: Math.max(rect.left, bounding.left), right: Math.min(rect.right, bounding.right),
                 top: Math.max(rect.top, bounding.top), bottom: Math.min(rect.bottom, bounding.bottom)}
-      cur = cur.assignedSlot || cur.parentNode
+      cur = cur.assignedSlot || cur.parentNode!
     } else if (cur.nodeType == 11) { // A shadow root
-      cur = cur.host
+      cur = (cur as ShadowRoot).host
     } else {
       break
     }
@@ -214,10 +217,10 @@ export function scrollRectIntoView(dom: HTMLElement, rect: Rect, side: -1 | 1,
 
 export function scrollableParents(dom: HTMLElement, getX = true) {
   let doc = dom.ownerDocument, x: HTMLElement | null = null, y: HTMLElement | null = null
-  for (let cur = dom.parentNode as HTMLElement | null; cur;) {
+  for (let cur = dom.parentNode; cur;) {
     if (cur == doc.body || ((!getX || x) && y)) {
       break
-    } else if (cur.nodeType == 1) {
+    } else if (isElt(cur)) {
       if (!y && cur.scrollHeight > cur.clientHeight) y = cur
       if (getX && !x && cur.scrollWidth > cur.clientWidth) x = cur
       cur = cur.assignedSlot || cur.parentNode as HTMLElement | null
@@ -262,7 +265,7 @@ export class DOMSelectionState implements SelectionRange {
 export function getScrollStack(target: Element | null) {
   let stack: {node: Element, left: number, top: number}[] = []
   for (let cur: Node | null = target; cur; cur = cur.nodeType == 11 ? (cur as ShadowRoot).host : cur.parentNode) {
-    if (cur.nodeType == 1)
+    if (isElt(cur))
       stack.push({node: cur as Element, left: (cur as Element).scrollLeft, top: (cur as Element).scrollTop})
   }
   return stack
@@ -342,7 +345,7 @@ export function atElementStart(doc: HTMLElement, selection: SelectionRange) {
   offset = Math.min(offset, maxOffset(node))
   for (;;) {
     if (offset) {
-      if (node.nodeType != 1) return false
+      if (!isElt(node)) return false
       let prev: Node = node.childNodes[offset - 1]
       if ((prev as HTMLElement).contentEditable == "false") offset--
       else { node = prev; offset = maxOffset(node) }
@@ -362,10 +365,10 @@ export function isScrolledToBottom(elt: HTMLElement | Window) {
 
 export function textNodeBefore(startNode: Node, startOffset: number): {node: Text, offset: number} | null {
   for (let node = startNode, offset = startOffset;;) {
-    if (node.nodeType == 3 && offset > 0) {
-      return {node: node as Text, offset: offset}
-    } else if (node.nodeType == 1 && offset > 0) {
-      if ((node as HTMLElement).contentEditable == "false") return null
+    if (isText(node) && offset > 0) {
+      return {node: node, offset: offset}
+    } else if (isElt(node) && offset > 0) {
+      if (node.contentEditable == "false") return null
       node = node.childNodes[offset - 1]
       offset = maxOffset(node)
     } else if (node.parentNode && !isBlockElement(node)) {
@@ -379,10 +382,10 @@ export function textNodeBefore(startNode: Node, startOffset: number): {node: Tex
 
 export function textNodeAfter(startNode: Node, startOffset: number): {node: Text, offset: number} | null {
   for (let node = startNode, offset = startOffset;;) {
-    if (node.nodeType == 3 && offset < node.nodeValue!.length) {
-      return {node: node as Text, offset: offset}
-    } else if (node.nodeType == 1 && offset < node.childNodes.length) {
-      if ((node as HTMLElement).contentEditable == "false") return null
+    if (isText(node) && offset < node.nodeValue!.length) {
+      return {node: node, offset: offset}
+    } else if (isElt(node) && offset < node.childNodes.length) {
+      if (node.contentEditable == "false") return null
       node = node.childNodes[offset]
       offset = 0
     } else if (node.parentNode && !isBlockElement(node)) {

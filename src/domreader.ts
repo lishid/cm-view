@@ -1,5 +1,5 @@
 import {Tile} from "./tile"
-import {domIndex, maxOffset, isBlockElement} from "./dom"
+import {domIndex, maxOffset, isBlockElement, isElt, isText} from "./dom"
 import {EditorView} from "./editorview"
 import {EditorState} from "@codemirror/state"
 
@@ -78,11 +78,11 @@ export class DOMReader {
         if (i.lineBreak) this.lineBreak()
         else this.append(i.value)
       }
-    } else if (node.nodeType == 3) {
-      this.readTextNode(node as Text)
+    } else if (isText(node)) {
+      this.readTextNode(node)
     } else if (node.nodeName == "BR") {
       if (node.nextSibling) this.lineBreak()
-    } else if (node.nodeType == 1) {
+    } else if (isElt(node)) {
       this.readRange(node.firstChild, null)
     }
   }
@@ -95,7 +95,7 @@ export class DOMReader {
 
   findPointInside(node: Node, length: number) {
     for (let point of this.points)
-      if (node.nodeType == 3 ? point.node == node : node.contains(point.node))
+      if (isText(node) ? point.node == node : node.contains(point.node))
         point.pos = this.text.length + (isAtEnd(node, point.node, point.offset) ? length : 0)
   }
 }

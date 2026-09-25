@@ -1,5 +1,5 @@
 import {Text, EditorState, ChangeSet, ChangeDesc, RangeSet, EditorSelection} from "@codemirror/state"
-import {Rect, isScrolledToBottom, getScale, scrollableParents} from "./dom"
+import {Rect, isScrolledToBottom, getScale, scrollableParents, isElt} from "./dom"
 import {HeightMap, HeightOracle, BlockInfo, MeasuredHeights, QueryType, heightRelevantDecoChanges,
         clearHeightChangeFlag, heightChangeFlag} from "./heightmap"
 import {decorations, outerDecorations, ViewUpdate, UpdateFlag, ChangedRange, ScrollTarget, nativeSelectionHidden,
@@ -14,18 +14,17 @@ function visiblePixelRange(dom: HTMLElement, paddingTop: number): Rect {
   let left = Math.max(0, rect.left), right = Math.min(win.innerWidth, rect.right)
   let top = Math.max(0, rect.top), bottom = Math.min(win.innerHeight, rect.bottom)
   for (let parent = dom.parentNode as Node | null; parent && parent != doc.body;) {
-    if (parent.nodeType == 1) {
-      let elt = parent as HTMLElement
-      let style = window.getComputedStyle(elt)
-      if ((elt.scrollHeight > elt.clientHeight || elt.scrollWidth > elt.clientWidth) &&
+    if (isElt(parent)) {
+      let style = window.getComputedStyle(parent)
+      if ((parent.scrollHeight > parent.clientHeight || parent.scrollWidth > parent.clientWidth) &&
           style.overflow != "visible") {
-        let parentRect = elt.getBoundingClientRect()
+        let parentRect = parent.getBoundingClientRect()
         left = Math.max(left, parentRect.left)
         right = Math.min(right, parentRect.right)
         top = Math.max(top, parentRect.top)
         bottom = Math.min(parent == dom.parentNode ? win.innerHeight : bottom, parentRect.bottom)
       }
-      parent = style.position == "absolute" || style.position == "fixed" ? elt.offsetParent : elt.parentNode
+      parent = style.position == "absolute" || style.position == "fixed" ? parent.offsetParent : parent.parentNode
     } else if (parent.nodeType == 11) { // Shadow root
       parent = (parent as ShadowRoot).host
     } else {

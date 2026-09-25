@@ -3,7 +3,7 @@ import {EditorState, EditorSelection, SelectionRange, RangeSet,
 import {EditorView} from "./editorview"
 import {BlockType} from "./decoration"
 import {atomicRanges} from "./extension"
-import {textRange, Rect} from "./dom"
+import {textRange, Rect, isElt} from "./dom"
 import {moveVisually, movedOver, Direction, BidiSpan} from "./bidi"
 import {BlockInfo} from "./heightmap"
 import {TileFlag, CompositeTile, TextTile} from "./tile"
@@ -379,7 +379,7 @@ class InlineCoordsScan {
     let scan = this.scan(positions, i => {
       let child = tile.children[i]
       if (child.flags & TileFlag.PointWidget) return null
-      return (child.dom.nodeType == 1 ? child.dom as HTMLElement : textRange(child.dom as Text, 0, child.length)).getClientRects()
+      return (isElt(child.dom) ? child.dom : textRange(child.dom as Text, 0, child.length)).getClientRects()
     })
     let child = tile.children[scan.i], pos = positions[scan.i]
     if (child.isText()) return this.scanText(child, pos)

@@ -4,7 +4,7 @@ import {Decoration, DecorationSet, addRange, BlockWrapper, WidgetType} from "./d
 import {clientRectsFor, isEquivalentPosition, Rect, scrollRectIntoView,
         getSelection, hasSelection, textRange, DOMSelectionState,
         textNodeBefore, textNodeAfter, DOMPos, maxOffset,
-        getScrollStack, restoreScrollStack} from "./dom"
+        getScrollStack, restoreScrollStack, isElt} from "./dom"
 import {ViewUpdate, decorations as decorationsFacet, outerDecorations, ChangedRange, editable, blockWrappers,
         ScrollTarget, scrollHandler, getScrollMargins, logException, setEditContextFormatting} from "./extension"
 import {EditorView} from "./editorview"
@@ -582,7 +582,7 @@ function destroyDropped(tile: Tile, reused?: Map<Tile, Reused>) {
 }
 
 function betweenUneditable(pos: DOMPos) {
-  return pos.node.nodeType == 1 && pos.node.firstChild &&
+  return isElt(pos.node) && pos.node.firstChild &&
     (pos.offset == 0 || (pos.node.childNodes[pos.offset - 1] as HTMLElement).contentEditable == "false") &&
     (pos.offset == pos.node.childNodes.length || (pos.node.childNodes[pos.offset] as HTMLElement).contentEditable == "false")
 }
@@ -625,7 +625,7 @@ function findCompositionRange(view: EditorView, changes: ChangeSet, headPos: num
 const enum NextTo { Before = 1, After = 2 }
 
 function nextToUneditable(node: Node, offset: number) {
-  if (node.nodeType != 1) return 0
+  if (!isElt(node)) return 0
   return (offset && (node.childNodes[offset - 1] as any).contentEditable == "false" ? NextTo.Before : 0) |
     (offset < node.childNodes.length && (node.childNodes[offset] as any).contentEditable == "false" ? NextTo.After : 0)
 }
@@ -658,9 +658,7 @@ function findChangedWrappers(a: readonly RangeSet<BlockWrapper>[], b: readonly R
 
 function inUneditable(node: Node | null, inside: HTMLElement) {
   for (let cur = node; cur && cur != inside; cur = (cur as HTMLElement).assignedSlot || cur.parentNode) {
-    if (cur.nodeType == 1 && (cur as HTMLElement).contentEditable == 'false') {
-      return true;
-    }
+    if (isElt(cur) && cur.contentEditable == "false") return true;
   }
   return false;
 }
