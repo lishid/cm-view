@@ -13,7 +13,8 @@ type Measured = {
   size: DOMRect[],
   space: Rect,
   scaleX: number, scaleY: number,
-  makeAbsolute: boolean
+  makeAbsolute: boolean,
+  fixedLeft: number
 }
 
 const Outside = "-10000px"
@@ -102,10 +103,9 @@ export function tooltips(config: {
   parent?: HTMLElement
   /// By default, when figuring out whether there is room for a
   /// tooltip at a given position, the extension considers the entire
-  /// space between 0,0 and
-  /// `documentElement.clientWidth`/`clientHeight` to be available for
-  /// showing tooltips. You can provide a function here that returns
-  /// an alternative rectangle.
+  /// viewport, minus scrollbars and scrollbar gutters, to be available
+  /// for showing tooltips. You can provide a function here that
+  /// returns an alternative rectangle.
   tooltipSpace?: (view: EditorView) => Rect
 } = {}): Extension {
   return tooltipConfig.of(config)
@@ -117,9 +117,25 @@ type TooltipConfig = {
   tooltipSpace: (view: EditorView) => Rect
 }
 
+// The horizontal range fixed-position elements can occupy. Gutters
+// reserved by `scrollbar-gutter` (on either side) aren't reliably
+// excluded from clientWidth, but the root's margin box sits between
+// them.
+function fixedRange(view: EditorView) {
+  let docElt = view.dom.ownerDocument.documentElement, width = docElt.clientWidth
+  // Chrome reports specified rather than used margins, so without a gutter a narrow root would look like one
+  let style = getComputedStyle(docElt)
+  if (!/stable/.test(style.scrollbarGutter || "")) return {left: 0, right: width}
+  let rect = docElt.getBoundingClientRect(), scrollX = view.win.scrollX
+  return {
+    left: Math.max(0, rect.left + scrollX - parseFloat(style.marginLeft)),
+    right: Math.min(width, rect.right + scrollX + parseFloat(style.marginRight))
+  }
+}
+
 function windowSpace(view: EditorView) {
-  let docElt = view.dom.ownerDocument.documentElement
-  return {top: 0, left: 0, bottom: docElt.clientHeight, right: docElt.clientWidth}
+  let {left, right} = fixedRange(view)
+  return {top: 0, left, right, bottom: view.dom.ownerDocument.documentElement.clientHeight}
 }
 
 const tooltipConfig = Facet.define<Partial<TooltipConfig>, TooltipConfig>({
@@ -250,7 +266,7 @@ const tooltipPlugin = ViewPlugin.fromClass(class {
   }
 
   readMeasure(): Measured {
-    let scaleX = 1, scaleY = 1, makeAbsolute = false
+    let scaleX = 1, scaleY = 1, makeAbsolute = false, fixedLeft = 0
     if (this.position == "fixed" && this.manager.tooltipViews.length) {
       let {dom} = this.manager.tooltipViews[0]
       if (browser.safari) {
@@ -275,6 +291,9 @@ const tooltipPlugin = ViewPlugin.fromClass(class {
       } else {
         ;({scaleX, scaleY} = this.view.viewState)
       }
+    } else {
+      // Fixed coordinates start after a left scrollbar gutter, not at the viewport's edge
+      fixedLeft = fixedRange(this.view).left
     }
     let visible = this.view.scrollDOM.getBoundingClientRect(), margins = getScrollMargins(this.view)
     return {
@@ -289,7 +308,7 @@ const tooltipPlugin = ViewPlugin.fromClass(class {
       }),
       size: this.manager.tooltipViews.map(({dom}) => dom.getBoundingClientRect()),
       space: this.view.state.facet(tooltipConfig).tooltipSpace(this.view),
-      scaleX, scaleY, makeAbsolute
+      scaleX, scaleY, makeAbsolute, fixedLeft
     }
   }
 
@@ -346,7 +365,7 @@ const tooltipPlugin = ViewPlugin.fromClass(class {
         setLeftStyle(dom, (left - measured.parent.left) / scaleX)
       } else {
         dom.style.top = top / scaleY + "px"
-        setLeftStyle(dom, left / scaleX)
+        setLeftStyle(dom, (left - measured.fixedLeft) / scaleX)
       }
       if (arrow) {
         let arrowLeft = pos.left + (ltr ? offset.x : -offset.x) - (left + Arrow.Offset - Arrow.Size)
