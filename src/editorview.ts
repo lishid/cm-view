@@ -7,6 +7,7 @@ import {InputState, focusChangeTransaction, isFocusChange} from "./input"
 import {Rect, focusPreventScroll, getRoot, ScrollStrategy,
         isScrolledToBottom, dispatchKey} from "./dom"
 import {posAtCoords, moveByChar, moveToLineBoundary, byGroup, moveVertically, skipAtoms} from "./cursor"
+import {moveToBidiLineBoundary} from "./line-boundary"
 import {BlockInfo} from "./heightmap"
 import {ViewState} from "./viewstate"
 import {ViewUpdate, styleModule,
@@ -707,7 +708,7 @@ export class EditorView {
   /// returned. Otherwise this function will return the start or end
   /// of the line.
   moveToLineBoundary(start: SelectionRange, forward: boolean, includeWrap = true) {
-    return moveToLineBoundary(this, start, forward, includeWrap)
+    return moveToBidiLineBoundary(this, start, forward, includeWrap)
   }
 
   /// Move a cursor position vertically. When `distance` isn't given,
