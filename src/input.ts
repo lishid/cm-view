@@ -849,7 +849,7 @@ observers.compositionstart = observers.compositionupdate = (view, event) => {
     view.inputState.compositionFirstChange = true
   if (view.inputState.composing < 0) {
     let {main} = view.state.selection
-    if (!main.empty && view.lineBlockAt(main.from).from != view.lineBlockAt(main.to).from) {
+    if (!main.empty && view.lineBlockAt(main.from).from != view.lineBlockAt(main.to).from && !view.state.readOnly) {
       view.dispatch({
         changes: view.state.selection.ranges.filter(r => !r.empty).map(r => ({from: r.from, to: r.to})),
         userEvent: "input"
