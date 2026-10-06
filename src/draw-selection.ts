@@ -4,6 +4,8 @@ import {EditorView} from "./editorview"
 import {layer, RectangleMarker} from "./layer"
 import browser from "./browser"
 
+const drawMainRange = !browser.ios
+
 type SelectionConfig = {
   /// The length of a full cursor blink cycle, in milliseconds.
   /// Defaults to 1200. Can be set to 0 to disable blinking.
@@ -103,7 +105,7 @@ const selectionLayer = layer({
   above: false,
   markers(view) {
     let markers = [], {main, ranges} = view.state.selection
-    for (let r of ranges) if (!r.empty) {
+    for (let r of ranges) if (!r.empty && (drawMainRange || r != main)) {
       for (let marker of RectangleMarker.forRange(view, "cm-selectionBackground", r)) markers.push(marker)
     }
     if (browser.ios && !main.empty && view.state.facet(selectionConfig).iosSelectionHandles) {
@@ -127,16 +129,20 @@ const selectionBg = browser.gecko && browser.gecko_version == 153 ? "#ffffff01" 
 
 const hideNativeSelection = Prec.highest(EditorView.theme({
   ".cm-line": {
-    "& ::selection, &::selection": {backgroundColor: `${selectionBg} !important`},
+    ...drawMainRange ? {
+      "& ::selection, &::selection": {backgroundColor: `${selectionBg} !important`}
+    } : {},
     caretColor: "transparent !important"
   },
   ".cm-content": {
     caretColor: "transparent !important",
     "& :focus": {
       caretColor: "initial !important",
-      "&::selection, & ::selection": {
-        backgroundColor: "Highlight !important"
-      }
+      ...drawMainRange ? {
+        "&::selection, & ::selection": {
+          backgroundColor: "Highlight !important"
+        }
+      } : {}
     }
   }
 }))
