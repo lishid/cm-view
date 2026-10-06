@@ -9,6 +9,8 @@ import {groupAt, skipAtomsForSelection} from "./cursor"
 import {getSelection, focusPreventScroll, dispatchKey, scrollableParents, hasSelection} from "./dom"
 import {applyDOMChangeInner} from "./domchange"
 
+const LOG_input = false
+
 export class InputState {
   lastKeyCode: number = 0
   lastKeyTime: number = 0
@@ -131,6 +133,7 @@ export class InputState {
   }
 
   keydown(event: KeyboardEvent) {
+    LOG_input && console.log("keydown", event.key, ["shift", "alt", "ctrl", "meta"].filter(k => (event as any)[k + "Key"]).join())
     // Must always run, even if a custom handler handled the event
     this.lastKeyCode = event.keyCode
     this.lastKeyTime = Date.now()
@@ -839,7 +842,8 @@ observers.blur = view => {
   updateForFocusChange(view)
 }
 
-observers.compositionstart = observers.compositionupdate = view => {
+observers.compositionstart = observers.compositionupdate = (view, event) => {
+  LOG_input && console.log(event.type, view.inputState.composing ? "(new)" : "")
   if (view.observer.editContext) return // Composition handled by edit context
   if (view.inputState.compositionFirstChange == null)
     view.inputState.compositionFirstChange = true
@@ -857,6 +861,7 @@ observers.compositionstart = observers.compositionupdate = view => {
 }
 
 observers.compositionend = view => {
+  LOG_input && console.log("compositionend")
   if (view.observer.editContext) return // Composition handled by edit context
   view.inputState.composing = -1
   view.inputState.compositionEndedAt = Date.now()
@@ -885,6 +890,7 @@ observers.contextmenu = view => {
 }
 
 handlers.beforeinput = (view, event: InputEvent) => {
+  LOG_input && console.log("beforeinput", event.inputType, event.data)
   if (event.inputType == "insertText" || event.inputType == "insertCompositionText") {
     view.inputState.insertingText = event.data!
     view.inputState.insertingTextAt = Date.now()
