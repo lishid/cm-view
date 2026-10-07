@@ -1,3 +1,15 @@
+## 6.43.14 (2026-10-07)
+
+### Bug fixes
+
+Improve vertical alignment of the native cursor when next to a widget buffer.
+
+Account for `scrollbar-gutter` styling on the document element when placing tooltips.
+
+Avoid drawing the main selection range on iOS, since the native selection highlight cannot be hidden.
+
+Fix an issue where trying to compose over a selection in a read-only editor would delete the selection.
+
 ## 6.43.13 (2026-09-22)
 
 ### Bug fixes
