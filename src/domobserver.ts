@@ -138,7 +138,7 @@ export class DOMObserver {
   }
 
   onScroll(e: Event) {
-    if (this.intersecting) this.flush(false)
+    if (this.intersecting) this.flush(this.pendingRecords().length > 0)
     if (this.editContext) this.view.requestMeasure(this.editContext.measureReq)
     this.onScrollChanged(e)
   }
