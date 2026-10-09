@@ -4,7 +4,7 @@ import {StyleModule} from "style-mod"
 import {DecorationSet, Decoration, BlockWrapper} from "./decoration"
 import {EditorView, DOMEventHandlers} from "./editorview"
 import {Attrs} from "./attributes"
-import {Isolate, autoDirection} from "./bidi"
+import {Isolate, autoDirection, Direction} from "./bidi"
 import {Rect, ScrollStrategy} from "./dom"
 import {MakeSelectionStyle} from "./input"
 
@@ -296,11 +296,13 @@ export const atomicRanges = Facet.define<(view: EditorView) => RangeSet<any>>()
 
 export const bidiIsolatedRanges = Facet.define<DecorationSet | ((view: EditorView) => DecorationSet)>()
 
+type UnresolvedIsolate = {from: number, to: number, direction: Direction | null, inner: readonly UnresolvedIsolate[]}
+
 export function getIsolatedRanges(view: EditorView, line: Line): readonly Isolate[] {
   let isolates = view.state.facet(bidiIsolatedRanges)
   if (!isolates.length) return isolates as any[]
   let sets = isolates.map<DecorationSet>(i => i instanceof Function ? i(view) : i)
-  let result: Isolate[] = []
+  let result: UnresolvedIsolate[] = []
   RangeSet.spans(sets, line.from, line.to, {
     point() {},
     span(fromDoc, toDoc, active, open) {
@@ -308,8 +310,6 @@ export function getIsolatedRanges(view: EditorView, line: Line): readonly Isolat
       let level = result
       for (let i = active.length - 1; i >= 0; i--, open--) {
         let direction = active[i].spec.bidiIsolate, update
-        if (direction == null)
-          direction = autoDirection(line.text, from, to)
         if (open > 0 && level.length &&
             (update = level[level.length - 1]).to == from && update.direction == direction) {
           update.to = to
@@ -322,7 +322,24 @@ export function getIsolatedRanges(view: EditorView, line: Line): readonly Isolat
       }
     }
   })
-  return result
+  return resolveIsolates(line.text, result)
+}
+
+function resolveIsolates(text: string, isolates: readonly UnresolvedIsolate[]): Isolate[] {
+  for (let i of isolates) {
+    if (i.direction == null) {
+      for (let pos = i.from, j = 0; pos < i.to; j++) {
+        let nextInner = j < i.inner.length ? i.inner[j] : null
+        let dir = autoDirection(text, pos, nextInner ? nextInner.from : i.to)
+        if (dir) { i.direction = dir; break }
+        if (!nextInner) break
+        pos = nextInner.to
+      }
+      if (i.direction == null) i.direction = Direction.LTR
+    }
+    resolveIsolates(text, i.inner)
+  }
+  return isolates as Isolate[]
 }
 
 export const scrollMargins = Facet.define<(view: EditorView) => Partial<Rect> | null>()

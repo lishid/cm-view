@@ -137,6 +137,10 @@ const ltrIso = Decoration.mark({
   attributes: {style: "direction: ltr; unicode-bidi: isolate"},
   bidiIsolate: Direction.LTR
 })
+const autoIso = Decoration.mark({
+  attributes: {dir: "auto"},
+  bidiIsolate: null
+})
 
 function deco(...decorations: Range<Decoration>[]) {
   return StateField.define<DecorationSet>({
@@ -211,5 +215,10 @@ describe("bidi", () => {
   it("matches brackets across isolates", () => {
     testIsolates("one(אחת)שתיים", deco(rtlIso.range(4, 5)),
                  "0-4:0 4-5:1 5-7:1 7-8:0 8-13:1")
+  })
+
+  it("resolves auto isolates as a whole", () => {
+    testIsolates(" abc,אחת.", [deco(ltrIso.range(1, 4)), deco(autoIso.range(0, 9))],
+                 "4-9:1 1-4:2 0-1:1")
   })
 })
