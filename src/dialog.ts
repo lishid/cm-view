@@ -149,6 +149,7 @@ function createDialog(view: EditorView, config: DialogConfig, result: (form: HTM
         if (focus && "select" in focus) focus.select()
         else if (focus && "focus" in focus) focus.focus()
       }
-    }
+    },
+    destroy: () => result(null)
   }
 }
