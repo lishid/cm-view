@@ -206,7 +206,7 @@ export class ViewState {
   updateScaler() {
     let scaler = this.scaler
     this.scaler = this.heightMap.height <= VP.MaxDOMHeight ? IdScaler :
-      new BigScaler(this.heightOracle, this.heightMap, this.viewports)
+      BigScaler.get(this.heightOracle, this.heightMap, this.viewports)
     return scaler.eq(this.scaler) ? 0 : UpdateFlag.Height
   }
 
@@ -691,23 +691,27 @@ function staticDeco(state: EditorState) {
 // regions outside the viewports so that the total height is
 // VP.MaxDOMHeight.
 class BigScaler implements YScaler {
-  scale: number
-  viewports: {from: number, to: number, top: number, bottom: number, domTop: number, domBottom: number}[]
+  constructor(
+    readonly scale: number,
+    readonly viewports: {from: number, to: number, top: number, bottom: number, domTop: number, domBottom: number}[]
+  ) {}
 
-  constructor(oracle: HeightOracle, heightMap: HeightMap, viewports: readonly Viewport[]) {
+  static get(oracle: HeightOracle, heightMap: HeightMap, viewports: readonly Viewport[]): YScaler {
     let vpHeight = 0, base = 0, domBase = 0
-    this.viewports = viewports.map(({from, to}) => {
+    let vps = viewports.map(({from, to}) => {
       let top = heightMap.lineAt(from, QueryType.ByPos, oracle, 0, 0).top
       let bottom = heightMap.lineAt(to, QueryType.ByPos, oracle, 0, 0).bottom
       vpHeight += bottom - top
       return {from, to, top, bottom, domTop: 0, domBottom: 0}
     })
-    this.scale = (VP.MaxDOMHeight - vpHeight) / (heightMap.height - vpHeight)
-    for (let obj of this.viewports) {
-      obj.domTop = domBase + (obj.top - base) * this.scale
+    if (heightMap.height - vpHeight < 10) return IdScaler
+    let scale = (VP.MaxDOMHeight - vpHeight) / (heightMap.height - vpHeight)
+    for (let obj of vps) {
+      obj.domTop = domBase + (obj.top - base) * scale
       domBase = obj.domBottom = obj.domTop + (obj.bottom - obj.top)
       base = obj.bottom
     }
+    return new BigScaler(scale, vps)
   }
 
   toDOM(n: number) {
@@ -728,7 +732,7 @@ class BigScaler implements YScaler {
     }
   }
 
-  eq(other: YScaler) {
+  eq(other: YScaler): boolean {
     if (!(other instanceof BigScaler)) return false
     return this.scale == other.scale && this.viewports.length == other.viewports.length &&
       this.viewports.every((vp, i) => vp.from == other.viewports[i].from && vp.to == other.viewports[i].to)
