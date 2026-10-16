@@ -128,12 +128,15 @@ export function scrollRectIntoView(dom: HTMLElement, rect: Rect, side: -1 | 1,
   for (let cur: Node = dom, stop = false; cur && !stop;) {
     if (isElt(cur)) { // Element
       let bounding: Rect, top = cur == doc.body
-      let scaleX = 1, scaleY = 1
+      let scaleX = 1, scaleY = 1, xScroll = true, yScroll = true
       if (top) {
         bounding = windowRect(win)
       } else {
-        if (/^(fixed|sticky)$/.test(getComputedStyle(cur).position)) stop = true
-        if (cur.scrollHeight <= cur.clientHeight && cur.scrollWidth <= cur.clientWidth) {
+        let style = getComputedStyle(cur)
+        if (/^(fixed|sticky)$/.test(style.position)) stop = true
+        if (cur.scrollHeight <= cur.clientHeight || !/auto|scroll/.test(style.overflowY)) yScroll = false
+        if (cur.scrollWidth <= cur.clientWidth || !/auto|scroll/.test(style.overflowX)) xScroll = false
+        if (!xScroll && !yScroll) {
           cur = cur.assignedSlot || cur.parentNode!
           continue
         }
@@ -145,7 +148,9 @@ export function scrollRectIntoView(dom: HTMLElement, rect: Rect, side: -1 | 1,
       }
 
       let moveX = 0, moveY = 0
-      if (y == "nearest") {
+      if (!yScroll) {
+        // Skip
+      } else if (y == "nearest") {
         if (rect.top < bounding.top + yMargin) {
           moveY = rect.top - (bounding.top + yMargin)
           if (side > 0 && rect.bottom > bounding.bottom + moveY)
@@ -163,7 +168,9 @@ export function scrollRectIntoView(dom: HTMLElement, rect: Rect, side: -1 | 1,
           rect.bottom - boundingHeight + yMargin
         moveY = targetTop - bounding.top
       }
-      if (x == "nearest") {
+      if (!xScroll) {
+        // Skip
+      } else if (x == "nearest") {
         if (rect.left < bounding.left + xMargin) {
           moveX = rect.left - (bounding.left + xMargin)
           if (side > 0 && rect.right > bounding.right + moveX)
@@ -221,8 +228,10 @@ export function scrollableParents(dom: HTMLElement, getX = true) {
     if (cur == doc.body || ((!getX || x) && y)) {
       break
     } else if (isElt(cur)) {
-      if (!y && cur.scrollHeight > cur.clientHeight) y = cur
-      if (getX && !x && cur.scrollWidth > cur.clientWidth) x = cur
+      if (!y && cur.scrollHeight > cur.clientHeight && /scroll|auto/.test(getComputedStyle(cur).overflowY))
+        y = cur
+      if (getX && !x && cur.scrollWidth > cur.clientWidth && /scroll|auto/.test(getComputedStyle(cur).overflowX))
+        x = cur
       cur = cur.assignedSlot || cur.parentNode as HTMLElement | null
     } else if (cur.nodeType == 11) {
       cur = (cur as any).host
