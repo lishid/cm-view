@@ -69,11 +69,11 @@ export function moveToLineBoundary(view: EditorView, start: SelectionRange, forw
   if (coords) {
     let editorRect = view.dom.getBoundingClientRect()
     let direction = view.textDirectionAt(block.from)
-    let pos = view.posAtCoords({x: forward == (direction == Direction.LTR) ? editorRect.right - 1 : editorRect.left + 1,
-                                y: (coords.top + coords.bottom) / 2})
-    if (pos != null) return EditorSelection.cursor(pos, forward ? -1 : 1)
+    let pos = view.posAndSideAtCoords({x: forward == (direction == Direction.LTR) ? editorRect.right - 1 : editorRect.left + 1,
+                                       y: (coords.top + coords.bottom) / 2})
+    if (pos) return EditorSelection.cursor(pos.pos, pos.assoc)
   }
-  return EditorSelection.cursor(forward ? block.to : block.from, forward ? -1 : 1)
+  return EditorSelection.cursor(forward ? block.to : block.from, forward ? 1 : -1)
 }
 
 export function moveByChar(view: EditorView, start: SelectionRange, forward: boolean,
