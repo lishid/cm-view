@@ -130,6 +130,9 @@ function createDialog(view: EditorView, config: DialogConfig, result: (form: HTM
   }, ["×"]))
   if (config.class) panel.className = config.class
   panel.classList.add("cm-dialog")
+  let focus: HTMLInputElement | HTMLButtonElement | null =
+    typeof config.focus == "string" ? content.querySelector(config.focus) as any
+    : config.focus ? content.querySelector("input") || content.querySelector("button") : null
 
   function done(form: HTMLFormElement | null) {
     if (panel.contains(panel.ownerDocument.activeElement))
@@ -140,14 +143,9 @@ function createDialog(view: EditorView, config: DialogConfig, result: (form: HTM
     dom: panel,
     top: config.top,
     mount: () => {
-      if (config.focus) {
-        let focus: HTMLInputElement | HTMLButtonElement | undefined | null
-        if (typeof config.focus == "string")
-          focus = content!.querySelector(config.focus) as any
-        else
-          focus = content!.querySelector("input") || content!.querySelector("button")
-        if (focus && "select" in focus) focus.select()
-        else if (focus && "focus" in focus) focus.focus()
+      if (focus) {
+        if ("select" in focus) focus.select()
+        else if ("focus" in focus) focus.focus()
       }
     },
     destroy: () => result(null)
