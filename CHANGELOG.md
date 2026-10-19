@@ -1,3 +1,21 @@
+## 6.43.15 (2026-10-19)
+
+### Bug fixes
+
+Fix an issue where, if a scroll event gets delivered after the user inputs text but before the events for that input are delivered, the editor selection could end up in the wrong place.
+
+Fix a bug in the way bidi isolates with an automatic direction that have nested isolates are resolved.
+
+Fix an issue where the promise returned by `showDialog` might not resolve if you close the dialog programatically.
+
+Fix an issue where the editor's scrolling behavior got confused by a parent with a hidden or clipped overflow style.
+
+Fix a division by zero in height scaling.
+
+Make sure Home/End actually move the cursor to the visual start/end of the line when there is bidi text of the non-dominant dir at that side.
+
+Fix an issue in scroll stabilization when the content had a larger top padding.
+
 ## 6.43.14 (2026-10-07)
 
 ### Bug fixes
