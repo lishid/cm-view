@@ -598,7 +598,7 @@ export class ViewState {
   }
 
   scrollAnchorAt(scrollOffset: number) {
-    let block = this.lineBlockAtHeight(scrollOffset + 8)
+    let block = this.lineBlockAtHeight(scrollOffset + 12 - this.paddingTop)
     return block.from >= this.viewport.from || this.viewportLines[0].top - scrollOffset > 200 ? block : this.viewportLines[0]
   }
 
