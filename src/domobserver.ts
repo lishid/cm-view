@@ -1,6 +1,6 @@
 import browser from "./browser"
 import {Tile} from "./tile"
-import {EditorView} from "./editorview"
+import {EditorView, UpdateState} from "./editorview"
 import {editable, ViewUpdate, setEditContextFormatting, MeasureRequest} from "./extension"
 import {hasSelection, getSelection, DOMSelectionState, isEquivalentPosition, dispatchKey,
         atElementStart, isElt} from "./dom"
@@ -211,7 +211,8 @@ export class DOMObserver {
     if (local && !this.selectionChanged &&
         view.inputState.lastFocusTime > Date.now() - 200 &&
         view.inputState.lastTouchTime < Date.now() - 300 &&
-        atElementStart(this.dom, range)) {
+        atElementStart(this.dom, range) &&
+        this.view.updateState == UpdateState.Idle) {
       this.view.inputState.lastFocusTime = 0
       view.docView.updateSelection()
       return false
