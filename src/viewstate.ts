@@ -323,8 +323,8 @@ export class ViewState {
     }
     if (!this.inView && !this.scrollTarget && !inWindow(view.dom)) return 0
 
-    let contentWidth = domRect.width
-    if (this.contentDOMWidth != contentWidth || this.editorHeight != view.scrollDOM.clientHeight) {
+    let contentWidth = domRect.width, oldContentWidth = this.contentDOMWidth
+    if (oldContentWidth != contentWidth || this.editorHeight != view.scrollDOM.clientHeight) {
       this.contentDOMWidth = domRect.width
       this.editorHeight = view.scrollDOM.clientHeight
       result |= UpdateFlag.Geometry
@@ -333,7 +333,7 @@ export class ViewState {
     if (measureContent) {
       let lineHeights = view.docView.measureVisibleLineHeights(this.viewport)
       if (oracle.mustRefreshForHeights(lineHeights)) refresh = true
-      if (refresh || oracle.lineWrapping && Math.abs(contentWidth - this.contentDOMWidth) > oracle.charWidth) {
+      if (refresh || oracle.lineWrapping && Math.abs(contentWidth - oldContentWidth) > oracle.charWidth) {
         let {lineHeight, charWidth, textHeight} = view.docView.measureTextSize()
         refresh = lineHeight > 0 && oracle.refresh(whiteSpace, lineHeight, charWidth, textHeight,
                                                    Math.max(5, contentWidth / charWidth), lineHeights)
