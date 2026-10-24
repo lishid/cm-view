@@ -171,10 +171,14 @@ class PanelGroup {
   }
 
   scrollMargin() {
-    return !this.dom || this.container ? 0
-      : Math.max(0, this.top ?
-        this.dom.getBoundingClientRect().bottom - Math.max(0, this.view.scrollDOM.getBoundingClientRect().top) :
-        Math.min(innerHeight, this.view.scrollDOM.getBoundingClientRect().bottom) - this.dom.getBoundingClientRect().top)
+    if (!this.dom || this.container) return 0
+    let rect = this.dom.getBoundingClientRect(), {view} = this, scroll = view.scrollDOM
+    if (view.viewState.scrollParent != scroll ||
+        (this.top ? scroll.scrollTop < 2 : scroll.scrollTop > scroll.scrollHeight - scroll.clientHeight - 2))
+      return rect.height
+    return Math.min(rect.height, Math.max(0, this.top
+      ? rect.bottom - this.view.scrollDOM.getBoundingClientRect().top
+      : this.view.scrollDOM.getBoundingClientRect().bottom - rect.top))
   }
 
   syncClasses() {

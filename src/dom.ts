@@ -120,7 +120,7 @@ export function getScale(elt: HTMLElement, rect: DOMRect) {
   return {scaleX, scaleY}
 }
 
-export function scrollRectIntoView(dom: HTMLElement, rect: Rect, side: -1 | 1,
+export function scrollRectIntoView(dom: HTMLElement, rect: Rect, margins: Rect, side: -1 | 1,
                                    x: ScrollStrategy, y: ScrollStrategy,
                                    xMargin: number, yMargin: number, ltr: boolean) {
   let doc = dom.ownerDocument!, win = doc.defaultView || window
@@ -140,51 +140,53 @@ export function scrollRectIntoView(dom: HTMLElement, rect: Rect, side: -1 | 1,
           cur = cur.assignedSlot || cur.parentNode!
           continue
         }
-        let rect = cur.getBoundingClientRect()
-        ;({scaleX, scaleY} = getScale(cur, rect))
+        let eltRect = cur.getBoundingClientRect()
+        ;({scaleX, scaleY} = getScale(cur, eltRect))
         // Make sure scrollbar width isn't included in the rectangle
-        bounding = {left: rect.left, right: rect.left + cur.clientWidth * scaleX,
-                    top: rect.top, bottom: rect.top + cur.clientHeight * scaleY}
+        bounding = {left: eltRect.left, right: eltRect.left + cur.clientWidth * scaleX,
+                    top: eltRect.top, bottom: eltRect.top + cur.clientHeight * scaleY}
       }
 
       let moveX = 0, moveY = 0
+      let rTop = rect.top - margins.top, rBottom = rect.bottom + margins.bottom
       if (!yScroll) {
         // Skip
       } else if (y == "nearest") {
-        if (rect.top < bounding.top + yMargin) {
-          moveY = rect.top - (bounding.top + yMargin)
-          if (side > 0 && rect.bottom > bounding.bottom + moveY)
-            moveY = rect.bottom - bounding.bottom + yMargin
-        } else if (rect.bottom > bounding.bottom - yMargin) {
-          moveY = rect.bottom - bounding.bottom + yMargin
-          if (side < 0 && (rect.top - moveY) < bounding.top)
-            moveY = rect.top - (bounding.top + yMargin)
+        if (rTop < bounding.top + yMargin) {
+          moveY = rTop - (bounding.top + yMargin)
+          if (side > 0 && rBottom > bounding.bottom + moveY)
+            moveY = rBottom - bounding.bottom + yMargin
+        } else if (rBottom > bounding.bottom - yMargin) {
+          moveY = rBottom - bounding.bottom + yMargin
+          if (side < 0 && (rTop - moveY) < bounding.top)
+            moveY = rTop - (bounding.top + yMargin)
         }
       } else {
-        let rectHeight = rect.bottom - rect.top, boundingHeight = bounding.bottom - bounding.top
+        let rectHeight = rBottom - rTop, boundingHeight = bounding.bottom - bounding.top
         let targetTop =
-          y == "center" && rectHeight <= boundingHeight ? rect.top + rectHeight / 2 - boundingHeight / 2 :
-          y == "start" || y == "center" && side < 0 ? rect.top - yMargin :
-          rect.bottom - boundingHeight + yMargin
+          y == "center" && rectHeight <= boundingHeight ? rTop + rectHeight / 2 - boundingHeight / 2 :
+          y == "start" || y == "center" && side < 0 ? rTop - yMargin :
+          rBottom - boundingHeight + yMargin
         moveY = targetTop - bounding.top
       }
+      let rLeft = rect.left - margins.left, rRight = rect.right + margins.right
       if (!xScroll) {
         // Skip
       } else if (x == "nearest") {
-        if (rect.left < bounding.left + xMargin) {
-          moveX = rect.left - (bounding.left + xMargin)
-          if (side > 0 && rect.right > bounding.right + moveX)
-            moveX = rect.right - bounding.right + xMargin
-        } else if (rect.right > bounding.right - xMargin) {
-          moveX = rect.right - bounding.right + xMargin
-          if (side < 0 && rect.left < bounding.left + moveX)
-            moveX = rect.left - (bounding.left + xMargin)
+        if (rLeft < bounding.left + xMargin) {
+          moveX = rLeft - (bounding.left + xMargin)
+          if (side > 0 && rRight > bounding.right + moveX)
+            moveX = rRight - bounding.right + xMargin
+        } else if (rRight > bounding.right - xMargin) {
+          moveX = rRight - bounding.right + xMargin
+          if (side < 0 && rLeft < bounding.left + moveX)
+            moveX = rLeft - (bounding.left + xMargin)
         }
       } else {
         let targetLeft =
-          x == "center" ? rect.left + (rect.right - rect.left) / 2 - (bounding.right - bounding.left) / 2 :
-          (x == "start") == ltr ? rect.left - xMargin :
-          rect.right - (bounding.right - bounding.left) + xMargin
+          x == "center" ? rLeft + (rRight - rLeft) / 2 - (bounding.right - bounding.left) / 2 :
+          (x == "start") == ltr ? rLeft - xMargin :
+          rRight - (bounding.right - bounding.left) + xMargin
         moveX = targetLeft - bounding.left
       }
       if (moveX || moveY) {
@@ -213,6 +215,7 @@ export function scrollRectIntoView(dom: HTMLElement, rect: Rect, side: -1 | 1,
           rect.left < bounding.left || rect.right > bounding.right)
         rect = {left: Math.max(rect.left, bounding.left), right: Math.min(rect.right, bounding.right),
                 top: Math.max(rect.top, bounding.top), bottom: Math.min(rect.bottom, bounding.bottom)}
+      if (cur != dom) margins = noMargins
       cur = cur.assignedSlot || cur.parentNode!
     } else if (cur.nodeType == 11) { // A shadow root
       cur = (cur as ShadowRoot).host
@@ -221,6 +224,8 @@ export function scrollRectIntoView(dom: HTMLElement, rect: Rect, side: -1 | 1,
     }
   }
 }
+
+const noMargins = {left: 0, right: 0, top: 0, bottom: 0}
 
 export function scrollableParents(dom: HTMLElement, getX = true) {
   let doc = dom.ownerDocument, x: HTMLElement | null = null, y: HTMLElement | null = null

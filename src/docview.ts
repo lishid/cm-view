@@ -535,12 +535,8 @@ export class DocView {
               right: Math.max(rect.right, other.right), bottom: Math.max(rect.bottom, other.bottom)}
 
     let margins = getScrollMargins(this.view)
-    let targetRect = {
-      left: rect.left - margins.left, top: rect.top - margins.top,
-      right: rect.right + margins.right, bottom: rect.bottom + margins.bottom
-    }
     let {offsetWidth, offsetHeight} = this.view.scrollDOM
-    scrollRectIntoView(this.view.scrollDOM, targetRect, range.head < range.anchor ? -1 : 1,
+    scrollRectIntoView(this.view.scrollDOM, rect, margins, range.head < range.anchor ? -1 : 1,
                        target.x, target.y,
                        Math.max(Math.min(target.xMargin, offsetWidth), -offsetWidth),
                        Math.max(Math.min(target.yMargin, offsetHeight), -offsetHeight),
