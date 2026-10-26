@@ -259,13 +259,14 @@ const gutterView = ViewPlugin.fromClass(class {
     if (this.domAfter) this.domAfter.remove()
   }
 }, {
-  provide: plugin => EditorView.scrollMargins.of(view => {
+  provide: plugin => EditorView.coveredMargins.of(view => {
     let value = view.plugin(plugin)
     if (!value || value.gutters.length == 0 || !value.fixed) return null
-    let before = value.dom.offsetWidth * view.scaleX, after = value.domAfter ? value.domAfter.offsetWidth * view.scaleX : 0
+    let before = value.dom.getBoundingClientRect()
+    let after = value.domAfter?.getBoundingClientRect()
     return view.textDirection == Direction.LTR
-      ? {left: before, right: after}
-      : {right: before, left: after}
+      ? {left: before.right, right: after?.left, elt: value.dom}
+      : {right: before.left, left: after?.right, elt: value.dom}
   })
 })
 

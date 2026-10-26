@@ -344,6 +344,35 @@ function resolveIsolates(text: string, isolates: readonly UnresolvedIsolate[]): 
 
 export const scrollMargins = Facet.define<(view: EditorView) => Partial<Rect> | null>()
 
+export const coveredMargins = Facet.define<(view: EditorView) => {
+  left?: number,
+  right?: number,
+  top?: number,
+  bottom?: number,
+  elt: Element
+} | null>()
+
+export function getCoveredMargins(view: EditorView) {
+  let margins: {left?: number, right?: number, top?: number, bottom?: number, elt: Element}[] = []
+  for (let f of view.state.facet(coveredMargins)) {
+    let m = f(view)
+    if (m) margins.push(m)
+  }
+  for (let f of view.state.facet(scrollMargins)) {
+    let m = f(view)
+    if (m) {
+      let rect = view.scrollDOM.getBoundingClientRect()
+      let margin: {left?: number, right?: number, top?: number, bottom?: number, elt: Element} = {elt: view.dom}
+      if (m.left != null) margin.left = rect.left + m.left
+      if (m.right != null) margin.right = rect.right - m.right
+      if (m.top != null) margin.top = rect.top + m.top
+      if (m.bottom != null) margin.bottom = rect.bottom - m.bottom
+      margins.push(margin)
+    }
+  }
+  return margins
+}
+
 export function getScrollMargins(view: EditorView) {
   let left = 0, right = 0, top = 0, bottom = 0
   for (let source of view.state.facet(scrollMargins)) {

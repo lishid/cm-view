@@ -121,9 +121,19 @@ const panelPlugin = ViewPlugin.fromClass(class {
     this.bottom.sync([])
   }
 }, {
-  provide: plugin => EditorView.scrollMargins.of(view => {
+  provide: plugin => EditorView.coveredMargins.of(view => {
     let value = view.plugin(plugin)
-    return value && {top: value.top.scrollMargin(), bottom: value.bottom.scrollMargin()}
+    if (!value) return null
+    let top: number | undefined, bottom: number | undefined, elt: Element | undefined
+    if (value.top.dom && !value.top.container) {
+      top = value.top.dom.getBoundingClientRect().bottom
+      elt = value.top.dom
+    }
+    if (value.bottom.dom && !value.bottom.container) {
+      bottom = value.bottom.dom.getBoundingClientRect().top
+      elt = value.bottom.dom
+    }
+    return elt ? {top, bottom, elt} : null
   })
 })
 
@@ -168,17 +178,6 @@ class PanelGroup {
       }
     }
     while (curDOM) curDOM = rm(curDOM)
-  }
-
-  scrollMargin() {
-    if (!this.dom || this.container) return 0
-    let rect = this.dom.getBoundingClientRect(), {view} = this, scroll = view.scrollDOM
-    if (view.viewState.scrollParent != scroll ||
-        (this.top ? scroll.scrollTop < 2 : scroll.scrollTop > scroll.scrollHeight - scroll.clientHeight - 2))
-      return rect.height
-    return Math.min(rect.height, Math.max(0, this.top
-      ? rect.bottom - this.view.scrollDOM.getBoundingClientRect().top
-      : this.view.scrollDOM.getBoundingClientRect().bottom - rect.top))
   }
 
   syncClasses() {

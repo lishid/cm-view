@@ -1,9 +1,9 @@
 import {EditorState, Transaction, StateEffect, StateEffectType,
         Facet, StateField, Extension, MapMode, FacetReader} from "@codemirror/state"
 import {EditorView} from "./editorview"
-import {ViewPlugin, ViewUpdate, logException, getScrollMargins} from "./extension"
+import {ViewPlugin, ViewUpdate, logException, getCoveredMargins} from "./extension"
 import {Direction} from "./bidi"
-import {Rect} from "./dom"
+import {Rect, clipMargins} from "./dom"
 import browser from "./browser"
 
 type Measured = {
@@ -295,12 +295,8 @@ const tooltipPlugin = ViewPlugin.fromClass(class {
       // Fixed coordinates start after a left scrollbar gutter, not at the viewport's edge
       fixedLeft = fixedRange(this.view).left
     }
-    let visible = this.view.scrollDOM.getBoundingClientRect(), margins = getScrollMargins(this.view)
     return {
-      visible: {
-        left: visible.left + margins.left, top: visible.top + margins.top,
-        right: visible.right - margins.right, bottom: visible.bottom - margins.bottom
-      },
+      visible: clipMargins(this.view.scrollDOM.getBoundingClientRect(), getCoveredMargins(this.view)),
       parent: this.parent ? this.container.getBoundingClientRect() : this.view.dom.getBoundingClientRect(),
       pos: this.manager.tooltips.map((t, i) => {
         let tv = this.manager.tooltipViews[i]

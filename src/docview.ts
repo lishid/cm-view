@@ -6,7 +6,7 @@ import {clientRectsFor, isEquivalentPosition, Rect, scrollRectIntoView,
         textNodeBefore, textNodeAfter, DOMPos, maxOffset,
         getScrollStack, restoreScrollStack, isElt} from "./dom"
 import {ViewUpdate, decorations as decorationsFacet, outerDecorations, ChangedRange, editable, blockWrappers,
-        ScrollTarget, scrollHandler, getScrollMargins, logException, setEditContextFormatting} from "./extension"
+        ScrollTarget, scrollHandler, getCoveredMargins, logException, setEditContextFormatting} from "./extension"
 import {EditorView} from "./editorview"
 import {Direction} from "./bidi"
 import {Tile, LineTile, DocTile, TileFlag, BlockWrapperTile} from "./tile"
@@ -534,9 +534,9 @@ export class DocView {
       rect = {left: Math.min(rect.left, other.left), top: Math.min(rect.top, other.top),
               right: Math.max(rect.right, other.right), bottom: Math.max(rect.bottom, other.bottom)}
 
-    let margins = getScrollMargins(this.view)
     let {offsetWidth, offsetHeight} = this.view.scrollDOM
-    scrollRectIntoView(this.view.scrollDOM, rect, margins, range.head < range.anchor ? -1 : 1,
+    scrollRectIntoView(this.view.scrollDOM, rect, getCoveredMargins(this.view),
+                       range.head < range.anchor ? -1 : 1,
                        target.x, target.y,
                        Math.max(Math.min(target.xMargin, offsetWidth), -offsetWidth),
                        Math.max(Math.min(target.yMargin, offsetHeight), -offsetHeight),

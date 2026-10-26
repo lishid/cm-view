@@ -14,7 +14,8 @@ import {ViewUpdate, styleModule,
         clickAddsSelectionRange, dragMovesSelection, mouseSelectionStyle,
         exceptionSink, updateListener, logException,
         viewPlugin, ViewPlugin, PluginValue, PluginInstance, decorations, outerDecorations, blockWrappers,
-        atomicRanges, scrollMargins, MeasureRequest, editable, inputHandler, focusChangeEffect, perLineTextDirection,
+        atomicRanges, scrollMargins, coveredMargins, MeasureRequest, editable, inputHandler, focusChangeEffect,
+        perLineTextDirection,
         scrollIntoView, UpdateFlag, ScrollTarget, bidiIsolatedRanges, getIsolatedRanges, scrollHandler,
         clipboardInputFilter, clipboardOutputFilter} from "./extension"
 import {theme, darkTheme, buildTheme, baseThemeID, baseLightID, baseDarkID, lightDarkIDs, baseTheme} from "./theme"
@@ -1136,11 +1137,23 @@ export class EditorView {
     }
   })
 
-  /// Facet that allows extensions to provide additional scroll
-  /// margins (space around the sides of the scrolling element that
-  /// should be considered invisible). This can be useful when the
-  /// plugin introduces elements that cover part of that element (for
-  /// example a horizontally fixed gutter). Not to be confused with
+  /// Facet that allows extensions to inform the editor that they are
+  /// covering a margin of the content at some side, to make it avoid
+  /// displaying something that should be in view below that margin.
+  ///
+  /// The numbers provided should be screen coordinates positions up
+  /// to which the content is covered at the given side. For example,
+  /// a gutter at the left of the editor should provide the right side
+  /// of its bounding rectangle in the `left` property.
+  ///
+  /// `elt` should hold the element doing the covering, or some other
+  /// element in the same scrollable parent.
+  static coveredMargins = coveredMargins
+
+  /// **Deprecated.** The old, flawed way to express
+  /// [`coveredMargins`](#view.EditorView^coveredMargins). Reserves
+  /// space around the sides of the scrolling element that should be
+  /// considered invisible. Not to be confused with
   /// [`cursorScrollMargin`](#view.EditorView^cursorScrollMargin).
   static scrollMargins = scrollMargins
 

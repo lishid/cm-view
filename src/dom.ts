@@ -100,6 +100,17 @@ export function flattenRect(rect: Rect, toLeft: boolean) {
   return {left: x, right: x, top: rect.top, bottom: rect.bottom}
 }
 
+export function clipMargins(rect: Rect, margins: readonly Partial<Rect>[]) {
+  let {left, right, top, bottom} = rect
+  for (let margin of margins) {
+    if (margin.left != null) left = Math.max(left, margin.left)
+    if (margin.right != null) right = Math.min(right, margin.right)
+    if (margin.top != null) top = Math.max(top, margin.top)
+    if (margin.bottom != null) bottom = Math.min(bottom, margin.bottom)
+  }
+  return {left, right, top, bottom}
+}
+
 function windowRect(win: Window): Rect {
   let vp = win.visualViewport
   if (vp) return {
@@ -120,9 +131,13 @@ export function getScale(elt: HTMLElement, rect: DOMRect) {
   return {scaleX, scaleY}
 }
 
-export function scrollRectIntoView(dom: HTMLElement, rect: Rect, margins: Rect, side: -1 | 1,
-                                   x: ScrollStrategy, y: ScrollStrategy,
-                                   xMargin: number, yMargin: number, ltr: boolean) {
+export function scrollRectIntoView(
+  dom: HTMLElement, rect: Rect,
+  margins: readonly {left?: number, right?: number, top?: number, bottom?: number, elt: Element}[],
+  side: -1 | 1,
+  x: ScrollStrategy, y: ScrollStrategy,
+  xMargin: number, yMargin: number, ltr: boolean
+) {
   let doc = dom.ownerDocument!, win = doc.defaultView || window
 
   for (let cur: Node = dom, stop = false; cur && !stop;) {
@@ -147,47 +162,46 @@ export function scrollRectIntoView(dom: HTMLElement, rect: Rect, margins: Rect, 
                     top: eltRect.top, bottom: eltRect.top + cur.clientHeight * scaleY}
       }
 
+      let clip = clipMargins(bounding, margins)
       let moveX = 0, moveY = 0
-      let rTop = rect.top - margins.top, rBottom = rect.bottom + margins.bottom
       if (!yScroll) {
         // Skip
       } else if (y == "nearest") {
-        if (rTop < bounding.top + yMargin) {
-          moveY = rTop - (bounding.top + yMargin)
-          if (side > 0 && rBottom > bounding.bottom + moveY)
-            moveY = rBottom - bounding.bottom + yMargin
-        } else if (rBottom > bounding.bottom - yMargin) {
-          moveY = rBottom - bounding.bottom + yMargin
-          if (side < 0 && (rTop - moveY) < bounding.top)
-            moveY = rTop - (bounding.top + yMargin)
+        if (rect.top < clip.top + yMargin) {
+          moveY = rect.top - (clip.top + yMargin)
+          if (side > 0 && rect.bottom > clip.bottom + moveY)
+            moveY = rect.bottom - clip.bottom + yMargin
+        } else if (rect.bottom > clip.bottom - yMargin) {
+          moveY = rect.bottom - clip.bottom + yMargin
+          if (side < 0 && (rect.top - moveY) < clip.top)
+            moveY = rect.top - (clip.top + yMargin)
         }
       } else {
-        let rectHeight = rBottom - rTop, boundingHeight = bounding.bottom - bounding.top
+        let rectHeight = rect.bottom - rect.top, boundingHeight = clip.bottom - clip.top
         let targetTop =
-          y == "center" && rectHeight <= boundingHeight ? rTop + rectHeight / 2 - boundingHeight / 2 :
-          y == "start" || y == "center" && side < 0 ? rTop - yMargin :
-          rBottom - boundingHeight + yMargin
-        moveY = targetTop - bounding.top
+          y == "center" && rectHeight <= boundingHeight ? rect.top + rectHeight / 2 - boundingHeight / 2 :
+          y == "start" || y == "center" && side < 0 ? rect.top - yMargin :
+          rect.bottom - boundingHeight + yMargin
+        moveY = targetTop - clip.top
       }
-      let rLeft = rect.left - margins.left, rRight = rect.right + margins.right
       if (!xScroll) {
         // Skip
       } else if (x == "nearest") {
-        if (rLeft < bounding.left + xMargin) {
-          moveX = rLeft - (bounding.left + xMargin)
-          if (side > 0 && rRight > bounding.right + moveX)
-            moveX = rRight - bounding.right + xMargin
-        } else if (rRight > bounding.right - xMargin) {
-          moveX = rRight - bounding.right + xMargin
-          if (side < 0 && rLeft < bounding.left + moveX)
-            moveX = rLeft - (bounding.left + xMargin)
+        if (rect.left < clip.left + xMargin) {
+          moveX = rect.left - (clip.left + xMargin)
+          if (side > 0 && rect.right > clip.right + moveX)
+            moveX = rect.right - clip.right + xMargin
+        } else if (rect.right > clip.right - xMargin) {
+          moveX = rect.right - clip.right + xMargin
+          if (side < 0 && rect.left < clip.left + moveX)
+            moveX = rect.left - (clip.left + xMargin)
         }
       } else {
         let targetLeft =
-          x == "center" ? rLeft + (rRight - rLeft) / 2 - (bounding.right - bounding.left) / 2 :
-          (x == "start") == ltr ? rLeft - xMargin :
-          rRight - (bounding.right - bounding.left) + xMargin
-        moveX = targetLeft - bounding.left
+          x == "center" ? rect.left + (rect.right - rect.left) / 2 - (clip.right - clip.left) / 2 :
+          (x == "start") == ltr ? rect.left - xMargin :
+          rect.right - (clip.right - clip.left) + xMargin
+        moveX = targetLeft - clip.left
       }
       if (moveX || moveY) {
         if (top) {
@@ -215,7 +229,7 @@ export function scrollRectIntoView(dom: HTMLElement, rect: Rect, margins: Rect, 
           rect.left < bounding.left || rect.right > bounding.right)
         rect = {left: Math.max(rect.left, bounding.left), right: Math.min(rect.right, bounding.right),
                 top: Math.max(rect.top, bounding.top), bottom: Math.min(rect.bottom, bounding.bottom)}
-      if (cur != dom) margins = noMargins
+      margins = margins.filter(m => !cur.contains(m.elt))
       cur = cur.assignedSlot || cur.parentNode!
     } else if (cur.nodeType == 11) { // A shadow root
       cur = (cur as ShadowRoot).host
@@ -224,8 +238,6 @@ export function scrollRectIntoView(dom: HTMLElement, rect: Rect, margins: Rect, 
     }
   }
 }
-
-const noMargins = {left: 0, right: 0, top: 0, bottom: 0}
 
 export function scrollableParents(dom: HTMLElement, getX = true) {
   let doc = dom.ownerDocument, x: HTMLElement | null = null, y: HTMLElement | null = null
