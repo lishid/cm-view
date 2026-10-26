@@ -291,6 +291,7 @@ class TileCache {
   buckets: Tile[][] = buckets.map(() => [])
   index: number[] = buckets.map(() => 0)
   reused: Map<Tile, Reused> = new Map
+  dir: -1 | 1 = 1
 
   constructor(readonly view: EditorView) {}
 
@@ -304,8 +305,11 @@ class TileCache {
   find<Cls extends Tile>(cls: new (...args: any) => Cls, test?: (a: Cls) => boolean, type: Reused = Reused.DOM): Cls | null {
     let i: number = (cls as any).bucket
     let bucket = this.buckets[i], off = this.index[i]
-    for (let j = 0; j < bucket.length; j++) {
-      // Look at the most oldest items first (first-in, first-out)
+    // When running through a preserved section, use last-in,
+    // first-out order. When building new content, go first-in,
+    // first-out.
+    let [start, end, step] = this.dir > 0 ? [0, bucket.length, 1] : [bucket.length - 1, -1, -1]
+    for (let j = start; j != end; j += step) {
       let index = (j + off) % bucket.length, tile = bucket[index] as Cls
       if ((!test || test(tile)) && !this.reused.has(tile)) {
         bucket.splice(index, 1)
@@ -407,7 +411,9 @@ export class TileUpdate {
       if (skipA > posA) {
         LOG_builder && console.log("Preserve", posA, "to", skipA)
         let len = skipA - posA
+        this.cache.dir = -1
         this.preserve(len, !i, !next)
+        this.cache.dir = 1
         posA = skipA
         posB += len
       }
