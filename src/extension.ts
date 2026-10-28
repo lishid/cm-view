@@ -373,20 +373,6 @@ export function getCoveredMargins(view: EditorView) {
   return margins
 }
 
-export function getScrollMargins(view: EditorView) {
-  let left = 0, right = 0, top = 0, bottom = 0
-  for (let source of view.state.facet(scrollMargins)) {
-    let m = source(view)
-    if (m) {
-      if (m.left != null) left = Math.max(left, m.left)
-      if (m.right != null) right = Math.max(right, m.right)
-      if (m.top != null) top = Math.max(top, m.top)
-      if (m.bottom != null) bottom = Math.max(bottom, m.bottom)
-    }
-  }
-  return {left, right, top, bottom}
-}
-
 export const styleModule = Facet.define<StyleModule>()
 
 export const enum UpdateFlag { Focus = 1, Height = 2, Viewport = 4, ViewportMoved = 8, Geometry = 16 }

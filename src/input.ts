@@ -1,12 +1,12 @@
 import {EditorSelection, EditorState, SelectionRange, RangeSet, Annotation, Text, Facet} from "@codemirror/state"
 import {EditorView, UpdateState} from "./editorview"
 import {ViewUpdate, PluginValue, clickAddsSelectionRange, dragMovesSelection as dragBehavior, atomicRanges,
-        logException, mouseSelectionStyle, PluginInstance, focusChangeEffect, getScrollMargins,
+        logException, mouseSelectionStyle, PluginInstance, focusChangeEffect, getCoveredMargins,
         clipboardInputFilter, clipboardOutputFilter} from "./extension"
 import {Tile} from "./tile"
 import browser from "./browser"
 import {groupAt, skipAtomsForSelection} from "./cursor"
-import {getSelection, focusPreventScroll, dispatchKey, scrollableParents, hasSelection} from "./dom"
+import {getSelection, focusPreventScroll, dispatchKey, scrollableParents, hasSelection, clipMargins} from "./dom"
 import {applyDOMChangeInner} from "./domchange"
 
 const LOG_input = false
@@ -353,16 +353,16 @@ class MouseSelection {
     let left = 0, top = 0, right = this.view.win.innerWidth, bottom = this.view.win.innerHeight
     if (this.scrollParents.x) ({left, right} = this.scrollParents.x.getBoundingClientRect())
     if (this.scrollParents.y) ({top, bottom} = this.scrollParents.y.getBoundingClientRect())
-    let margins = getScrollMargins(this.view)
+    let scrollRect = clipMargins({left, right, top, bottom}, getCoveredMargins(this.view))
 
-    if (event.clientX - margins.left <= left + dragScrollMargin)
-      sx = -dragScrollSpeed(left - event.clientX)
-    else if (event.clientX + margins.right >= right - dragScrollMargin)
-      sx = dragScrollSpeed(event.clientX - right)
-    if (event.clientY - margins.top <= top + dragScrollMargin)
-      sy = -dragScrollSpeed(top - event.clientY)
-    else if (event.clientY + margins.bottom >= bottom - dragScrollMargin)
-      sy = dragScrollSpeed(event.clientY - bottom)
+    if (event.clientX <= scrollRect.left + dragScrollMargin)
+      sx = -dragScrollSpeed(scrollRect.left - event.clientX)
+    else if (event.clientX >= scrollRect.right - dragScrollMargin)
+      sx = dragScrollSpeed(event.clientX - scrollRect.right)
+    if (event.clientY <= scrollRect.top + dragScrollMargin)
+      sy = -dragScrollSpeed(scrollRect.top - event.clientY)
+    else if (event.clientY >= scrollRect.bottom - dragScrollMargin)
+      sy = dragScrollSpeed(event.clientY - scrollRect.bottom)
     this.setScrollSpeed(sx, sy)
   }
 
