@@ -361,12 +361,18 @@ export function getCoveredMargins(view: EditorView) {
   for (let f of view.state.facet(scrollMargins)) {
     let m = f(view)
     if (m) {
-      let rect = (view.viewState.scrollParent || view.win.document.documentElement).getBoundingClientRect()
+      let {win} = view
+      let left = 0, right = win.innerWidth, top = 0, bottom = win.innerHeight
+      if (view.viewState.scrollParent) {
+        let rect = view.viewState.scrollParent.getBoundingClientRect()
+        left = Math.max(rect.left, left); right = Math.min(rect.right, right)
+        top = Math.max(rect.top, top); bottom = Math.min(rect.bottom, bottom)
+      }
       let margin: {left?: number, right?: number, top?: number, bottom?: number, elt: Element} = {elt: view.dom}
-      if (m.left != null) margin.left = rect.left + m.left
-      if (m.right != null) margin.right = rect.right - m.right
-      if (m.top != null) margin.top = rect.top + m.top
-      if (m.bottom != null) margin.bottom = rect.bottom - m.bottom
+      if (m.left != null) margin.left = left + m.left
+      if (m.right != null) margin.right = right - m.right
+      if (m.top != null) margin.top = top + m.top
+      if (m.bottom != null) margin.bottom = bottom - m.bottom
       margins.push(margin)
     }
   }
