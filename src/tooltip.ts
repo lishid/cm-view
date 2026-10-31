@@ -273,8 +273,10 @@ const tooltipPlugin = ViewPlugin.fromClass(class {
         // Safari always sets offsetParent to null, even if a fixed
         // element is positioned relative to a transformed parent. So
         // we use this kludge to try and detect this.
-        let rect = dom.getBoundingClientRect()
-        makeAbsolute = Math.abs(rect.top + 10000) > 1 || Math.abs(rect.left) > 1
+        if (dom.style.top == Outside && dom.style.left == "0px") {
+          let rect = dom.getBoundingClientRect()
+          makeAbsolute = Math.abs(rect.top + 10000) > 1 || Math.abs(rect.left) > 1
+        }
       } else {
         // More conforming browsers will set offsetParent to the
         // transformed element.
