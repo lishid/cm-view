@@ -331,7 +331,7 @@ function resolveIsolates(text: string, isolates: readonly UnresolvedIsolate[]): 
       for (let pos = i.from, j = 0; pos < i.to; j++) {
         let nextInner = j < i.inner.length ? i.inner[j] : null
         let dir = autoDirection(text, pos, nextInner ? nextInner.from : i.to)
-        if (dir) { i.direction = dir; break }
+        if (dir != null) { i.direction = dir; break }
         if (!nextInner) break
         pos = nextInner.to
       }
