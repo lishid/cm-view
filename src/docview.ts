@@ -116,7 +116,7 @@ export class DocView {
   // Used by update and the constructor do perform the actual DOM
   // update
   private updateInner(changes: readonly ChangedRange[], composition: Composition | null) {
-    this.view.viewState.mustMeasureContent = true
+    this.view.viewState.setMustMeasure()
 
     let {observer} = this.view
     observer.ignore(() => {

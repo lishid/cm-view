@@ -349,7 +349,10 @@ export class DOMObserver {
 
   processRecords() {
     let records = this.pendingRecords()
-    if (records.length) this.queue = []
+    if (records.length) {
+      this.queue = []
+      this.view.viewState.setMustMeasure()
+    }
 
     let from = -1, to = -1, typeOver = false
     for (let record of records) {

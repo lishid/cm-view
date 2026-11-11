@@ -328,7 +328,7 @@ export class EditorView {
       this.docView.updateSelection(redrawn, transactions.some(tr => tr.isUserEvent("select.pointer")))
     } finally { this.updateState = UpdateState.Idle }
     if (update.startState.facet(theme) != update.state.facet(theme))
-      this.viewState.mustMeasureContent = true
+      this.viewState.setMustMeasure()
     if (redrawn || attrsChanged || scrollTarget || this.viewState.mustEnforceCursorAssoc || this.viewState.mustMeasureContent)
       this.requestMeasure()
     if (redrawn) this.docViewUpdate()

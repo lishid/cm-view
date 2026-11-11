@@ -384,6 +384,10 @@ export class ViewState {
     return result
   }
 
+  setMustMeasure() {
+    if (!this.mustMeasureContent) this.mustMeasureContent = true
+  }
+
   get visibleTop() { return this.scaler.fromDOM(this.pixelViewport.top) }
   get visibleBottom() { return this.scaler.fromDOM(this.pixelViewport.bottom) }
 
