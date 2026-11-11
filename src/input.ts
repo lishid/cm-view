@@ -528,6 +528,7 @@ observers.wheel = observers.mousewheel = view => {
 
 handlers.keydown = (view, event: KeyboardEvent) => {
   view.inputState.setSelectionOrigin("select")
+  if (view.inputState.composing >= 0 && event.isComposing === false) compositionEnd(view)
   if (event.keyCode == 27 && view.inputState.tabFocusMode != 0) view.inputState.tabFocusMode = Date.now() + 2000
   return false
 }
@@ -860,7 +861,7 @@ observers.compositionstart = observers.compositionupdate = (view, event) => {
   }
 }
 
-observers.compositionend = view => {
+const compositionEnd = observers.compositionend = view => {
   LOG_input && console.log("compositionend")
   if (view.observer.editContext) return // Composition handled by edit context
   view.inputState.composing = -1
@@ -891,6 +892,8 @@ observers.contextmenu = view => {
 
 handlers.beforeinput = (view, event: InputEvent) => {
   LOG_input && console.log("beforeinput", event.inputType, event.data)
+  if (view.inputState.composing >= 0 && event.isComposing === false) compositionEnd(view)
+
   if (event.inputType == "insertText" || event.inputType == "insertCompositionText") {
     view.inputState.insertingText = event.data!
     view.inputState.insertingTextAt = Date.now()
