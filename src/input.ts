@@ -138,6 +138,8 @@ export class InputState {
     this.lastKeyCode = event.keyCode
     this.lastKeyTime = Date.now()
 
+    if (this.composing >= 0 && event.isComposing === false) compositionEnd(this.view)
+
     if (event.keyCode == 9 && this.tabFocusMode > -1 && (!this.tabFocusMode || Date.now() <= this.tabFocusMode))
       return true
     if (this.tabFocusMode > 0 && event.keyCode != 27 && modifierCodes.indexOf(event.keyCode) < 0)
@@ -528,7 +530,6 @@ observers.wheel = observers.mousewheel = view => {
 
 handlers.keydown = (view, event: KeyboardEvent) => {
   view.inputState.setSelectionOrigin("select")
-  if (view.inputState.composing >= 0 && event.isComposing === false) compositionEnd(view)
   if (event.keyCode == 27 && view.inputState.tabFocusMode != 0) view.inputState.tabFocusMode = Date.now() + 2000
   return false
 }
