@@ -788,7 +788,8 @@ handlers.copy = handlers.cut = (view, event: ClipboardEvent) => {
   // element in the selection), but we should let the parent handle it.
   if (!hasSelection(view.contentDOM, view.observer.selectionRange)) return false
 
-  let {text, ranges, linewise} = copiedRange(view.state)
+  let state = view.state
+  let {text, ranges, linewise} = copiedRange(state)
   if (!text && !linewise) return false
   lastLinewiseCopy = linewise ? text : null
 
@@ -804,7 +805,7 @@ handlers.copy = handlers.cut = (view, event: ClipboardEvent) => {
     data.setData("text/plain", text)
     let hooks = view.state.facet(clipboardCopyHook)
     if (hooks.length) {
-      let info = {text, ranges, linewise, state: view.state}
+      let info = {text, ranges, linewise, state}
       let type = event.type as "copy" | "cut"
       for (let hook of hooks) {
         try { hook(type, data, info) }
