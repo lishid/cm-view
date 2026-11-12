@@ -3,7 +3,7 @@ import {Tile} from "./tile"
 import {EditorView, UpdateState} from "./editorview"
 import {editable, ViewUpdate, setEditContextFormatting, MeasureRequest} from "./extension"
 import {hasSelection, getSelection, DOMSelectionState, isEquivalentPosition, dispatchKey,
-        atElementStart, isElt} from "./dom"
+        atElementStart, isElt, isBlockElement} from "./dom"
 import {DOMChange, applyDOMChange, applyDOMChangeInner, findDiff, sameSelPos} from "./domchange"
 import type {EditContext} from "./editcontext"
 import {Decoration} from "./decoration"
@@ -76,6 +76,9 @@ export class DOMObserver {
       if ((browser.ie && browser.ie_version <= 11 || browser.ios && view.composing) &&
           mutations.some(m => m.type == "childList" && m.removedNodes.length ||
                          m.type == "characterData" && m.oldValue!.length > m.target.nodeValue!.length))
+        this.flushSoon()
+      else if (browser.ios && mutations.some(m => m.type == "childList" &&
+               Array.prototype.some.call(m.addedNodes, isBlockElement)))
         this.flushSoon()
       else
         this.flush()
