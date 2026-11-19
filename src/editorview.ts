@@ -285,13 +285,16 @@ export class EditorView {
     if (pendingKey) {
       this.observer.clearDelayedAndroidKey()
       domChange = this.observer.readChange()
-      // Only try to apply DOM changes if the transactions didn't
-      // change the doc or selection.
-      if (domChange && !this.state.doc.eq(state.doc) || !this.state.selection.eq(state.selection))
-        domChange = null
+    } else if (this.observer.delayedFlush > -1) {
+      this.observer.clearDelayedFlush()
+      domChange = this.observer.readChange()
     } else {
       this.observer.clear()
     }
+    // Only try to apply DOM changes if the transactions didn't
+    // change the doc or selection.
+    if (domChange && !this.state.doc.eq(state.doc) || !this.state.selection.eq(state.selection))
+      domChange = null
 
     // When the phrases change, redraw the editor
     if (state.facet(EditorState.phrases) != this.state.facet(EditorState.phrases))

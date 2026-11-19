@@ -337,11 +337,15 @@ export class DOMObserver {
       this.delayedFlush = this.view.win.requestAnimationFrame(() => { this.delayedFlush = -1; this.flush() })
   }
 
-  forceFlush() {
+  clearDelayedFlush() {
     if (this.delayedFlush >= 0) {
       this.view.win.cancelAnimationFrame(this.delayedFlush)
       this.delayedFlush = -1
     }
+  }
+
+  forceFlush() {
+    this.clearDelayedFlush()
     this.flush()
   }
 
