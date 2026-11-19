@@ -201,7 +201,7 @@ export class DOMObserver {
     let {view} = this
     // The Selection object is broken in shadow roots in Safari. See
     // issue #414
-    let selection = getSelection(view.root)
+    let selection = view.dom.isConnected ? getSelection(view.root) : null
     if (!selection) return false
     let range = browser.safari && (view.root as any).nodeType == 11 &&
       view.root.activeElement == this.dom &&
