@@ -679,13 +679,15 @@ class HoverPlugin {
       pos = view.posAtCoords(lastMove)!
       if (pos == null) return
       let posCoords = view.coordsAtPos(pos)
-      if (!posCoords ||
-          lastMove.y < posCoords.top || lastMove.y > posCoords.bottom ||
-          lastMove.x < posCoords.left - view.defaultCharacterWidth ||
-          lastMove.x > posCoords.right + view.defaultCharacterWidth) return
+      if (!posCoords || lastMove.y < posCoords.top || lastMove.y > posCoords.bottom)
+        return
       let bidi = view.bidiSpans(view.state.doc.lineAt(pos)).find(s => s.from <= pos! && s.to >= pos!)
       let rtl = bidi && bidi.dir == Direction.RTL ? -1 : 1
       side = (lastMove.x < posCoords.left ? -rtl : rtl) as -1 | 1
+      let charRect = side < 0 ? (pos ? view.coordsForChar(pos - 1) : null)
+        : (pos < view.state.doc.length ? view.coordsForChar(pos) : null)
+      let width = Math.max(charRect ? (charRect.right - charRect.left) : 0, view.defaultCharacterWidth)
+      if (lastMove.x < posCoords.left - width || lastMove.x > posCoords.right + width) return
     }
     this.activateHover(view, pos, side)
   }
