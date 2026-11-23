@@ -78,8 +78,18 @@ export class HeightOracle {
 // block heights, starting from position `from`.
 export class MeasuredHeights {
   public index = 0
-  constructor(readonly from: number, readonly heights: number[]) {}
+  constructor(
+    readonly from: number,
+    readonly heights: number[],
+    readonly gaps: readonly {from: number, to: number}[] | null
+  ) {}
+
   get more() { return this.index < this.heights.length }
+
+  hasGap(from: number, to: number) {
+    if (this.gaps) for (let g of this.gaps) if (g.from < to && g.to > from) return true
+    return false
+  }
 }
 
 /// Record used to represent information about a block-level element
@@ -325,9 +335,12 @@ class HeightMapText extends HeightMapBlock {
   }
 
   updateHeight(oracle: HeightOracle, offset: number = 0, force: boolean = false, measured?: MeasuredHeights) {
+    let estimate = force || this.outdated
     if (measured && measured.from <= offset && measured.more) {
       this.setMeasuredHeight(measured)
-    } else if (force || this.outdated) {
+      if (measured.hasGap(offset, offset + this.length)) estimate = true
+    }
+    if (estimate) {
       this.spaceAbove = 0
       this.setHeight(Math.max(this.widgetHeight, oracle.heightForLine(this.length - this.collapsed)) +
         this.breaks * oracle.lineHeight)

@@ -387,6 +387,9 @@ export class DocView {
     return scan(tile, offset)
   }
 
+  // Returns an array of line heights in the given range, possibly
+  // prefixed by a negative number indicating the extra space above
+  // the line.
   measureVisibleLineHeights(viewport: {from: number, to: number}) {
     let result: number[] = [], {from, to} = viewport
     let contentWidth = this.view.contentDOM.clientWidth
