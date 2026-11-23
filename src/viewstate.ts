@@ -185,7 +185,7 @@ export class ViewState {
     }
     this.updateViewportLines()
     this.lineGaps = this.ensureLineGaps([])
-    this.lineGapDeco = Decoration.set(this.lineGaps.map(gap => gap.draw(this, false)))
+    this.lineGapDeco = Decoration.set(this.lineGaps.map(gap => gap.draw(this, guessWrapping)))
     this.scrollParent = view.scrollDOM
     this.computeVisibleRanges()
   }
