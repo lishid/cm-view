@@ -16,7 +16,7 @@ export class InputState {
   lastKeyTime: number = 0
   touchActive = false
   // Set when a touch ends in touchcancel (a long-press that selected
-  // text) until the next touch, key or mouse press
+  // text) until the next touch, key or mouse press, or blur
   touchCancelled = false
   lastTouchTime = 0
   lastTouchX = 0
@@ -869,6 +869,7 @@ observers.focus = view => {
 }
 
 observers.blur = view => {
+  view.inputState.touchCancelled = false
   view.observer.clearSelectionRange()
   updateForFocusChange(view)
 }

@@ -275,4 +275,25 @@ describe("DOM changes", () => {
     await new Promise(resolve => setTimeout(resolve, 600))
     ist(getSelection()!.focusOffset, 3)
   })
+
+  it("restores the selection when focus returns while it waits for the browser", async () => {
+    let cm = requireFocus(tempView("one two three"))
+    cm.dispatch({selection: {anchor: 4, head: 7}})
+    cm.inputState.touchCancelled = true
+    cm.docView.setNativeSelection(cm.state.selection.main)
+    let input = document.body.appendChild(document.createElement("input"))
+    try {
+      input.focus()
+      await new Promise(resolve => setTimeout(resolve, 50))
+      cm.focus()
+      await new Promise(resolve => setTimeout(resolve, 50))
+      let sel = getSelection()!
+      ist(sel.anchorOffset, 4)
+      ist(sel.focusOffset, 7)
+      ist(cm.state.selection.main.from, 4)
+      ist(cm.state.selection.main.to, 7)
+    } finally {
+      input.remove()
+    }
+  })
 })
