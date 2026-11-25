@@ -25,13 +25,10 @@ export class DOMChange {
     if (view.state.readOnly && start > -1) {
       // Ignore changes when the editor is read-only
       this.newSel = null
-    } else if (start > -1 && (this.bounds = domBoundsFor(view.docView.tile, start, end))) {
+    } else if (start > -1 && (this.bounds = domBoundsAround(view.docView.tile, start, end, 0))) {
       let selPoints = iHead || iAnchor ? [] : selectionPoints(view)
       let reader = new DOMReader(selPoints, view)
-      if (this.bounds.startDOM)
-        reader.readRange(this.bounds.startDOM, true, this.bounds.endDOM)
-      else if (view.contentDOM.firstChild)
-        reader.readRange(view.contentDOM.firstChild, false, this.bounds.endDOM)
+      reader.readRange(this.bounds.startDOM, this.bounds.endDOM)
       this.text = reader.text
       this.newSel = selectionFromPoints(selPoints, this.bounds.from)
     } else {
@@ -78,25 +75,37 @@ export class DOMChange {
   }
 }
 
-// Find unaffected nodes, if any, around the given range.
-function domBoundsFor(docTile: Tile, from: number, to: number) {
-  let before: Tile | null = null, after: Tile | null = null
-  let scan = (tile: Tile, off: number) => {
-    for (let i = 0; i < tile.children.length && !after; i++) {
-      let next = tile.children[i], end = off + next.length
-      if (next.dom.parentNode == tile.dom) {
-        if (end < from) before = next
-        else if (off > to) after = next
-        else if (off < from || end > to) scan(next, off)
+function domBoundsAround(tile: Tile, from: number, to: number, offset: number): {
+  startDOM: Node | null,
+  endDOM: Node | null,
+  from: number,
+  to: number
+} | null {
+  if (tile.isComposite()) {
+    let fromI = -1, fromStart = -1, toI = -1, toEnd = -1
+    for (let i = 0, pos = offset, prevEnd = offset; i < tile.children.length; i++) {
+      let child = tile.children[i], end = pos + child.length
+      if (pos < from && end > to) return domBoundsAround(child, from, to, pos)
+      if (end >= from && fromI == -1) {
+        fromI = i
+        fromStart = pos
       }
-      off = end + next.breakAfter
+      if (pos > to && child.dom!.parentNode == tile.dom) {
+        toI = i
+        toEnd = prevEnd
+        break
+      }
+      prevEnd = end
+      pos = end + child.breakAfter
     }
+    return {from: fromStart, to: toEnd < 0 ? offset + tile.length : toEnd,
+            startDOM: (fromI ? tile.children[fromI - 1].dom.nextSibling : null) || tile.dom.firstChild,
+            endDOM: toI < tile.children.length && toI >= 0 ? tile.children[toI].dom : null}
+  } else if (tile.isText()) {
+    return {from: offset, to: offset + tile.length, startDOM: tile.dom, endDOM: tile.dom.nextSibling}
+  } else {
+    return null
   }
-  scan(docTile, 0)
-  return {from: before ? (before as Tile).posAtEnd + (before as Tile).breakAfter : 0,
-          to: after ? (after as Tile).posAtStart : docTile.length,
-          startDOM: before ? (before as Tile).dom : null,
-          endDOM: after ? (after as Tile).dom : null}
 }
 
 export function applyDOMChange(view: EditorView, domChange: DOMChange): boolean {
