@@ -353,7 +353,28 @@ describe("EditorView drawing", () => {
     cm.dispatch({changes: {from: 0, to: 3}})
     ist(cm.contentDOM.firstChild, line1)
     cm.dispatch({changes: {from: 0, to: 1}})
-    ist(cm.contentDOM.firstChild, line1)
+    ist(cm.contentDOM.firstChild, line2)
+  })
+
+  it("keeps the line node of a selection end outside the viewport", () => {
+    let lineDeco = Decoration.line({class: "x"})
+    let decorate = (view: EditorView) => Decoration.set(view.viewportLineBlocks.map(b => lineDeco.range(b.from)))
+    let cm = tempView("line\n".repeat(1000), [scroll(300), ViewPlugin.define(view => ({
+      decorations: decorate(view),
+      update(update) { this.decorations = decorate(update.view) }
+    }), {decorations: v => v.decorations})])
+    cm.dispatch({selection: {anchor: 12}})
+    let lineNode = cm.domAtPos(12).node.parentNode as HTMLElement
+    for (let top = 50; top <= 4000; top += 50) {
+      cm.scrollDOM.scrollTop = top
+      cm.measure()
+      ist(cm.domAtPos(12).node.parentNode, lineNode)
+    }
+    ist(lineNode.className, "cm-line")
+    cm.scrollDOM.scrollTop = 0
+    cm.measure()
+    ist(cm.domAtPos(12).node.parentNode, lineNode)
+    ist(lineNode.className, "cm-line x")
   })
 
   it("splits long stretches of text into chunks", () => {
