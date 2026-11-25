@@ -575,6 +575,17 @@ export class TilePointer {
   }
 
   get root() { return (this.parents.length ? this.parents[0].tile : this.tile) as DocTile }
+
+  // If the pointer is inside a line, before any of its content, return that line.
+  lineAtStart(): LineTile | null {
+    if (this.index) return null
+    let tile = this.tile
+    for (let i = this.parents.length - 1;; i--) {
+      if (tile.isLine()) return tile
+      if (i < 0 || this.parents[i].index) return null
+      tile = this.parents[i].tile
+    }
+  }
 }
 
 export interface TileWalker {

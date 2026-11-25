@@ -132,9 +132,9 @@ class TileBuilder {
     this.pos += length
   }
 
-  addLineStart(attrs: Attrs | null, dom?: HTMLElement) {
+  addLineStart(attrs: Attrs | null, dom?: HTMLElement, keepAttrs = !!dom) {
     if (!attrs) attrs = lineBaseAttrs
-    let tile = LineTile.start(attrs, dom || this.cache.find(LineTile)?.dom, !!dom)
+    let tile = LineTile.start(attrs, dom || this.cache.find(LineTile)?.dom, keepAttrs)
     this.getBlockPos().append(this.lastBlock = this.curLine = tile)
   }
 
@@ -568,7 +568,12 @@ export class TileUpdate {
       }
     })
     if (markCount > -1) this.openWidget = openEnd > markCount
-    if (!this.openWidget) b.addLineStartIfNotCovered(pendingLineAttrs)
+    if (!this.openWidget && !b.blockPosCovered()) {
+      // When the content after this continues an old line, build it on that
+      // line's own DOM, so that its text (and a DOM selection in it) stays put.
+      let line = this.old.lineAtStart()
+      b.addLineStart(pendingLineAttrs, line ? this.cache.maybeReuse(line) : undefined, false)
+    }
     this.openMarks = openEnd
   }
 
