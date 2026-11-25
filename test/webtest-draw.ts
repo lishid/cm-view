@@ -377,6 +377,40 @@ describe("EditorView drawing", () => {
     ist(lineNode.className, "cm-line x")
   })
 
+  it("keeps the text of a selection end outside the viewport", () => {
+    let mark = Decoration.mark({class: "x"})
+    let decorate = (view: EditorView) => Decoration.set(view.visibleRanges.flatMap(({from, to}) => {
+      let decos = []
+      for (let pos = from; pos < to; pos = view.state.doc.lineAt(pos).to + 1) {
+        let line = view.state.doc.lineAt(pos)
+        decos.push(mark.range(Math.max(from, line.from), Math.min(to, line.to)))
+      }
+      return decos
+    }))
+    let cm = tempView("line\n".repeat(1000), [scroll(300), ViewPlugin.define(view => ({
+      decorations: decorate(view),
+      update(update) { this.decorations = decorate(update.view) }
+    }), {decorations: v => v.decorations})])
+    cm.dispatch({selection: {anchor: 12}})
+    let text = cm.domAtPos(12).node
+    for (let top = 50; top <= 4000; top += 50) {
+      cm.scrollDOM.scrollTop = top
+      cm.measure()
+      ist(cm.domAtPos(12).node, text)
+    }
+    ist(cm.visibleRanges.some(r => r.from <= 12 && r.to >= 12))
+    ist((text.parentNode as HTMLElement).className, "x")
+  })
+
+  it("includes an empty selection end line outside the viewport", () => {
+    let cm = tempView("one\n\n" + "line\n".repeat(1000), [scroll(300)])
+    cm.dispatch({selection: {anchor: 4}})
+    cm.scrollDOM.scrollTop = 4000
+    cm.measure()
+    ist(cm.visibleRanges[0].from, 4)
+    ist(cm.visibleRanges[0].to, 4)
+  })
+
   it("splits long stretches of text into chunks", () => {
     let cm = tempView("a".repeat(800), [
       EditorView.decorations.of(Decoration.set(Decoration.mark({class: "x"}).range(0, 800)))

@@ -100,8 +100,10 @@ export class EditorView {
   /// viewport, its size can be a lot bigger than the actual visible
   /// content. Thus, if you are doing something like styling the
   /// content in the viewport, it is preferable to only do so for
-  /// these ranges, which are the subset of the viewport that is
-  /// actually drawn.
+  /// these ranges, which are the parts of the document that are
+  /// actually drawn: the viewport, without its collapsed ranges, and
+  /// the lines holding the main selection's ends when they lie outside
+  /// of it.
   get visibleRanges(): readonly {from: number, to: number}[] { return this.viewState.visibleRanges }
 
   /// Returns false when the editor is entirely scrolled out of view
