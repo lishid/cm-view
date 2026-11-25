@@ -564,10 +564,14 @@ export class ViewState {
     let deco = this.stateDeco
     if (this.lineGaps.length) deco = deco.concat(this.lineGapDeco)
     let ranges: {from: number, to: number}[] = []
-    RangeSet.spans(deco, this.viewport.from, this.viewport.to, {
-      span(from, to) { ranges.push({from, to}) },
-      point() {}
-    }, 20)
+    for (let {from, to} of this.viewports) {
+      // An empty line has no spans, but is drawn
+      if (from == to) ranges.push({from, to})
+      else RangeSet.spans(deco, from, to, {
+        span(from, to) { ranges.push({from, to}) },
+        point() {}
+      }, 20)
+    }
     let changed = 0
     if (ranges.length != this.visibleRanges.length) {
       changed = UpdateFlag.ViewportMoved | UpdateFlag.Viewport
