@@ -69,6 +69,11 @@ export class DOMChange {
       } else {
         this.newSel = EditorSelection.single(anchor, head)
       }
+      // Chrome fires contextmenu when a handle is released or a selection menu item
+      // runs, and a selection read just after it is that action's, not a drag's
+      if (browser.android && browser.chrome && view.inputState.touchCancelled &&
+          view.inputState.lastContextMenu < Date.now() - 100)
+        view.docView.nativeSelection = this.newSel.main
     }
   }
 }

@@ -15,6 +15,9 @@ export class InputState {
   lastKeyCode: number = 0
   lastKeyTime: number = 0
   touchActive = false
+  // Set when a touch ends in touchcancel (a long-press that selected
+  // text) until the next touch, key or mouse press, or blur
+  touchCancelled = false
   lastTouchTime = 0
   lastTouchX = 0
   lastTouchY = 0
@@ -137,6 +140,7 @@ export class InputState {
     // Must always run, even if a custom handler handled the event
     this.lastKeyCode = event.keyCode
     this.lastKeyTime = Date.now()
+    this.touchCancelled = false
 
     if (this.composing >= 0 && event.isComposing === false) compositionEnd(this.view)
 
@@ -536,6 +540,7 @@ handlers.keydown = (view, event: KeyboardEvent) => {
 observers.touchstart = (view, e: TouchEvent) => {
   let iState = view.inputState, touch = e.targetTouches[0]
   iState.touchActive = true
+  iState.touchCancelled = false
   iState.lastTouchTime = Date.now()
   if (touch) {
     iState.lastTouchX = touch.clientX
@@ -548,11 +553,17 @@ observers.touchmove = view => {
   view.inputState.setSelectionOrigin("select.pointer")
 }
 
-observers.touchend = observers.touchcancel = (view, e: TouchEvent) => {
+observers.touchend = view => {
   view.inputState.touchActive = false
 }
 
+observers.touchcancel = view => {
+  view.inputState.touchActive = false
+  view.inputState.touchCancelled = true
+}
+
 handlers.mousedown = (view, event: MouseEvent) => {
+  view.inputState.touchCancelled = false
   view.observer.flush()
   if (view.inputState.lastTouchTime > Date.now() - 2000) return false // Ignore touch interaction
   let style: MouseSelectionStyle | null = null
@@ -858,6 +869,7 @@ observers.focus = view => {
 }
 
 observers.blur = view => {
+  view.inputState.touchCancelled = false
   view.observer.clearSelectionRange()
   updateForFocusChange(view)
 }
@@ -911,6 +923,8 @@ const compositionEnd = observers.compositionend = view => {
 
 observers.contextmenu = view => {
   view.inputState.lastContextMenu = Date.now()
+  // Chrome Android fires this when a selection handle is released
+  view.docView.releaseNativeSelection()
 }
 
 handlers.beforeinput = (view, event: InputEvent) => {

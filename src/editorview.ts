@@ -121,6 +121,15 @@ export class EditorView {
   /// composition there.
   get compositionStarted() { return !!this.inputState && this.inputState.composing >= 0 }
 
+  /// Indicates whether the view leaves the DOM selection to the
+  /// browser, which may be moving it with a selection handle (Chrome
+  /// on Android). This lasts until the handle is released or the
+  /// next touch, key press or blur, or until the editor changes the
+  /// selection itself.
+  get selectionLeftToBrowser() {
+    return !!this.docView && this.docView.keepsNativeSelection(this.state.selection.main)
+  }
+
   private dispatchTransactions: (trs: readonly Transaction[], view: EditorView) => void
 
   private _root: DocumentOrShadowRoot
