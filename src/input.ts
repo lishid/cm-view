@@ -550,7 +550,7 @@ observers.touchmove = view => {
   view.inputState.setSelectionOrigin("select.pointer")
 }
 
-observers.touchend = (view, e: TouchEvent) => {
+observers.touchend = observers.touchcancel = (view, e: TouchEvent) => {
   view.inputState.touchActive = false
   if (view.inputState.touchPendingSelection) {
     view.inputState.touchPendingSelection = false
