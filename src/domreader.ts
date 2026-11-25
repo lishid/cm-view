@@ -8,68 +8,40 @@ export const LineBreakPlaceholder = "\uffff"
 export class DOMReader {
   text: string = ""
   lineSeparator: string | undefined
-  afterBreak = true
 
-  constructor(private points: DOMPoint[], view: EditorView) {
+  constructor(private points: DOMPoint[], private view: EditorView) {
     this.lineSeparator = view.state.facet(EditorState.lineSeparator)
   }
 
   append(text: string) {
     this.text += text
-    if (text.length) this.afterBreak = false
   }
 
   lineBreak() {
     this.text += LineBreakPlaceholder
-    this.afterBreak = true
   }
 
-  readRange(start: Node, after: boolean, end: Node | null) { // FIXME allow start-of-doc case
-    for (let cur: Node = start; cur;) {
-      if (after) {
-        let next = cur.nextSibling
-        if (!next) {
-          cur = cur.parentNode!
-          let tile = Tile.get(cur)
-          if (tile && !tile.parent) break
-          this.findPointAtEnd(cur)
-          if (tile ? tile.breakAfter : isBlockElement(cur) && !isEmptyToEnd(cur, end)) {
-            this.lineBreak()
-          }
-        } else if (next == end) {
-          break
-        } else {
-          cur = next
-          after = false
-        }
-      } else {
-        this.findPointBefore(cur)
-        let tile = Tile.get(cur), fromTile = tile && tile.overrideDOMText
-        if (fromTile != null) {
-          this.findPointInside(cur, fromTile.length)
-          for (let i = fromTile.iter(); !i.next().done;) {
-            if (i.lineBreak) this.lineBreak()
-            else this.append(i.value)
-          }
-        } else if (isText(cur)) {
-          this.readTextNode(cur)
-        } else if (cur.nodeName == "BR") {
-          if (cur.nextSibling) this.lineBreak()
-        } else if (isElt(cur)) {
-          if ((tile ? tile.isBlock() : isBlockElement(cur)) && !this.afterBreak)
-            this.lineBreak()
-          let child = cur.firstChild
-          if (child) {
-            if (child == end) break
-            cur = child
-            continue
-          } else if (tile ? tile.breakAfter : isBlockElement(cur) && !isEmptyToEnd(cur, end)) {
-            this.lineBreak()
-          }
-        }
-        after = true
+  readRange(start: Node | null, end: Node | null) {
+    if (!start) return this
+    let parent = start.parentNode!
+    for (let cur = start;;) {
+      this.findPointBefore(parent, cur)
+      let oldLen = this.text.length
+      this.readNode(cur)
+      let tile = Tile.get(cur), next: Node | null = cur.nextSibling
+      if (next == end) {
+        if (tile?.breakAfter && !next && parent != this.view.contentDOM) this.lineBreak()
+        break
       }
+      let nextTile = Tile.get(next!)
+      if ((tile && nextTile ? tile.breakAfter :
+           (tile ? tile.breakAfter : isBlockElement(cur)) ||
+           (isBlockElement(next!) && (cur.nodeName != "BR" || tile?.isWidget()) && this.text.length > oldLen)) &&
+          !isEmptyToEnd(next, end))
+        this.lineBreak()
+      cur = next!
     }
+    this.findPointBefore(parent, end)
     return this
   }
 
@@ -97,16 +69,27 @@ export class DOMReader {
     }
   }
 
-  findPointBefore(node: Node) { // FIXME handle end of parent positions
-    let parent = node.parentNode!
-    for (let point of this.points)
-      if (point.node == parent && parent.childNodes[point.offset] == node)
-        point.pos = this.text.length
+  readNode(node: Node) {
+    let tile = Tile.get(node)
+    let fromView = tile && tile.overrideDOMText
+    if (fromView != null) {
+      this.findPointInside(node, fromView.length)
+      for (let i = fromView.iter(); !i.next().done;) {
+        if (i.lineBreak) this.lineBreak()
+        else this.append(i.value)
+      }
+    } else if (isText(node)) {
+      this.readTextNode(node)
+    } else if (node.nodeName == "BR") {
+      if (node.nextSibling) this.lineBreak()
+    } else if (isElt(node)) {
+      this.readRange(node.firstChild, null)
+    }
   }
 
-  findPointAtEnd(node: Node) {
+  findPointBefore(node: Node, next: Node | null) {
     for (let point of this.points)
-      if (point.node == node && point.offset == node.childNodes.length)
+      if (point.node == node && node.childNodes[point.offset] == next)
         point.pos = this.text.length
   }
 
@@ -126,12 +109,13 @@ function isAtEnd(parent: Node, node: Node | null, offset: number) {
   }
 }
 
-function isEmptyToEnd(node: Node, end: Node | null) {
+function isEmptyToEnd(node: Node | null, end: Node | null) {
   let widgets: Tile[] | undefined
-  for (let cur = node.nextSibling; cur && node != end; cur = cur.nextSibling) {
-    let tile = Tile.get(node)
-    if (!tile?.isWidget()) return false
-    if (tile) (widgets || (widgets = [])).push(tile)
+  for (;; node = node.nextSibling) {
+    if (node == end || !node) break
+    let view = Tile.get(node)
+    if (!view?.isWidget()) return false
+    if (view) (widgets || (widgets = [])).push(view)
   }
   if (widgets) for (let w of widgets) {
     let override = w.overrideDOMText
