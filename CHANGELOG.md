@@ -1,3 +1,39 @@
+## 6.44.0 (2026-11-25)
+
+### Bug fixes
+
+Fix an issue that could, when updating the editor right after focusing it, cause the selection to end up in the wrong place.
+
+Fix an issue where, if the editor is wrapped in a scrolling element, compensating for the space taken up by a panel would sometimes go wrong.
+
+Fix an issue where the editor could miss changes in its width and fail to properly update estimated content height.
+
+Improve handling of panels or gutters covering part of the editor when scrolling a position into view.
+
+Fix an issue where some types of widget changes in long lines caused a lot of superfluous DOM node order shuffling.
+
+Fix an issue where, on Safari, tooltips would switch to absolute (rather than fixed) positioning even if the editor isn't in a transformed element.
+
+Fix a bug that caused the bidirectional text handling to resolve isolates with an automatic direction when they should be left-to-right but also contain right-to-left text.
+
+Don't get stuck in composing state when the browser fails to fire a compositionend event.
+
+Avoid continuing with stale height data by re-measuring the height of the content whenever the DOM is known to have changed.
+
+Delay DOM read on iOS when the changes insert a block element, to avoid dropped text caused by messy virtual keyboard behavior.
+
+Fix an issue where hovering over the middle of wide characters would sometimes not trigger the hover tooltip.
+
+Fix an issue where partially rendered lines in a wrapping editor could get stuck with wildly incorrect heights.
+
+Avoid re-reading entire lines from the DOM when changes happen at the start or end of line.
+
+Work around Chrome Android aborting a selection drag gesture on selection change by not syncing the selection until the gesture finishes.
+
+### New features
+
+The new `EditorView.coveredMargins` facet replaces `EditorView.scrollMargins`, which was unable to properly express some corner cases. The old facet remains in the library but is deprecated.
+
 ## 6.43.15 (2026-10-19)
 
 ### Bug fixes
