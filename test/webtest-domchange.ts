@@ -64,6 +64,16 @@ describe("DOM changes", () => {
     ist(cm.state.doc.toString(), "f")
   })
 
+  it("doesn't add a line break when typing over the last two lines", () => {
+    let cm = tempView("foo\nbar")
+    cm.dispatch({selection: {anchor: 1, head: 5}})
+    let [line0, line1] = Array.from(cm.contentDOM.childNodes)
+    line0.textContent = "fXar"
+    line1.remove()
+    flush(cm)
+    ist(cm.state.doc.toString(), "fXar")
+  })
+
   it("handles replacing a selection with a suffix of itself", () => {
     let cm = tempView("foo\nbar")
     cm.dispatch({selection: {anchor: 0, head: 7}})
