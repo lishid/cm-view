@@ -160,16 +160,21 @@ export class DocView {
 
   // Sync the DOM selection to this.state.selection
   updateSelection(mustRead = false, fromPointer = false) {
-    if (mustRead || !this.view.observer.selectionRange.focusNode) this.view.observer.readSelectionRange()
+    let {view} = this
+    if (mustRead || !view.observer.selectionRange.focusNode) view.observer.readSelectionRange()
     let {dom} = this.tile
-    let activeElt = this.view.root.activeElement, focused = activeElt == dom
-    let selectionNotFocus = !focused && !(this.view.state.facet(editable) || dom.tabIndex > -1) &&
-      hasSelection(dom, this.view.observer.selectionRange) && !(activeElt && dom.contains(activeElt))
+    let activeElt = view.root.activeElement, focused = activeElt == dom
+    let selectionNotFocus = !focused && !(view.state.facet(editable) || dom.tabIndex > -1) &&
+      hasSelection(dom, view.observer.selectionRange) && !(activeElt && dom.contains(activeElt))
     if (!(focused || fromPointer || selectionNotFocus)) return
+    if (browser.chrome && browser.android && view.inputState.touchActive) {
+      view.inputState.touchPendingSelection = true
+      return
+    }
     let force = this.forceSelection
     this.forceSelection = false
 
-    let main = this.view.state.selection.main, anchor: DOMPos, head: DOMPos
+    let main = view.state.selection.main, anchor: DOMPos, head: DOMPos
     if (main.empty) {
       head = anchor = this.inlineDOMNearPos(main.anchor, main.assoc || 1)
     } else {
@@ -181,18 +186,18 @@ export class DocView {
     // avoid invisible cursor bugs (#111)
     if (browser.gecko && main.empty && !this.hasComposition && betweenUneditable(anchor)) {
       let dummy = document.createTextNode("")
-      this.view.observer.ignore(() => anchor.node.insertBefore(dummy, anchor.node.childNodes[anchor.offset] || null))
+      view.observer.ignore(() => anchor.node.insertBefore(dummy, anchor.node.childNodes[anchor.offset] || null))
       anchor = head = new DOMPos(dummy, 0)
       force = true
     }
 
-    let domSel = this.view.observer.selectionRange
+    let domSel = view.observer.selectionRange
     // If the selection is already here, or in an equivalent position, don't touch it
     if (force || !domSel.focusNode || (
           !isEquivalentPosition(anchor.node, anchor.offset, domSel.anchorNode, domSel.anchorOffset) ||
           !isEquivalentPosition(head.node, head.offset, domSel.focusNode, domSel.focusOffset)
         ) && !this.suppressWidgetCursorChange(domSel, main)) {
-      this.view.observer.ignore(() => {
+      view.observer.ignore(() => {
         // Chrome Android will hide the virtual keyboard when tapping
         // inside an uneditable node, and not bring it back when we
         // move the cursor to its proper position. This tries to
@@ -202,7 +207,7 @@ export class DocView {
           dom.blur()
           dom.focus({preventScroll: true})
         }
-        let rawSel = getSelection(this.view.root)
+        let rawSel = getSelection(view.root)
         if (!rawSel) {
           // No DOM selection for some reason—do nothing
         } else if (main.empty) {
@@ -236,12 +241,12 @@ export class DocView {
           rawSel.removeAllRanges()
           rawSel.addRange(range)
         }
-        if (selectionNotFocus && this.view.root.activeElement == dom) {
+        if (selectionNotFocus && view.root.activeElement == dom) {
           dom.blur()
           if (activeElt) (activeElt as HTMLElement).focus()
         }
       })
-      this.view.observer.setSelectionRange(anchor, head)
+      view.observer.setSelectionRange(anchor, head)
     }
 
     this.impreciseAnchor = anchor.precise ? null : new DOMPos(domSel.anchorNode!, domSel.anchorOffset)

@@ -15,6 +15,7 @@ export class InputState {
   lastKeyCode: number = 0
   lastKeyTime: number = 0
   touchActive = false
+  touchPendingSelection = false
   lastTouchTime = 0
   lastTouchX = 0
   lastTouchY = 0
@@ -551,6 +552,10 @@ observers.touchmove = view => {
 
 observers.touchend = (view, e: TouchEvent) => {
   view.inputState.touchActive = false
+  if (view.inputState.touchPendingSelection) {
+    view.inputState.touchPendingSelection = false
+    view.docView.updateSelection(true)
+  }
 }
 
 handlers.mousedown = (view, event: MouseEvent) => {
