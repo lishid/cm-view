@@ -69,6 +69,11 @@ export class DOMChange {
       } else {
         this.newSel = EditorSelection.single(anchor, head)
       }
+      // Chrome fires contextmenu on a handle's release, a selection menu item or a
+      // double-tap's word selection, and a selection read just after it isn't a drag's
+      if (browser.android && browser.chrome && view.inputState.touchSelected &&
+          view.inputState.lastContextMenu < Date.now() - 100)
+        view.docView.nativeSelection = this.newSel.main
     }
   }
 }

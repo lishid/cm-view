@@ -1,5 +1,5 @@
-import {tempView} from "./tempview.js"
-import {EditorState, StateField} from "@codemirror/state"
+import {tempView, requireFocus} from "./tempview.js"
+import {EditorState, StateField, StateEffect} from "@codemirror/state"
 import {Decoration, DecorationSet, EditorView, WidgetType} from "@codemirror/view"
 import ist from "ist"
 
@@ -260,5 +260,90 @@ describe("DOM changes", () => {
     flush(cm)
     cm.measure()
     ist(cm.contentDOM.children[0].children[0].className, "x")
+  })
+
+  it("leaves the selection to the browser until the handle is released", () => {
+    let cm = requireFocus(tempView("one two three"))
+    cm.dispatch({selection: {anchor: 0, head: 3}})
+    cm.inputState.touchSelected = true
+    cm.docView.nativeSelection = cm.state.selection.main
+    ist(cm.selectionLeftToBrowser)
+    let text = cm.domAtPos(1).node
+    cm.observer.ignore(() => getSelection()!.setBaseAndExtent(text, 0, text, 5))
+    cm.observer.readSelectionRange()
+    cm.dispatch({})
+    ist(getSelection()!.focusOffset, 5)
+    cm.contentDOM.dispatchEvent(new MouseEvent("contextmenu", {bubbles: true}))
+    ist(!cm.selectionLeftToBrowser)
+    ist(getSelection()!.focusOffset, 3)
+  })
+
+  it("doesn't write a held selection when redrawing the node it is in", () => {
+    let toggle = StateEffect.define<null>()
+    let field = StateField.define<DecorationSet>({
+      create: () => Decoration.set(Decoration.replace({}).range(0, 4)),
+      update(deco, tr) {
+        return tr.effects.some(e => e.is(toggle)) ? Decoration.set(Decoration.replace({widget: new class extends WidgetType {
+          toDOM() { return document.createElement("b") }
+        }}).range(0, 4)) : deco
+      },
+      provide: f => EditorView.decorations.from(f)
+    })
+    let cm = requireFocus(tempView("one two three", [field]))
+    cm.dispatch({selection: {anchor: 8, head: 4}})
+    let line = cm.contentDOM.firstChild!, text = cm.domAtPos(8).node
+    cm.observer.ignore(() => getSelection()!.setBaseAndExtent(text, 4, line, Array.from(line.childNodes).indexOf(text as ChildNode)))
+    cm.observer.readSelectionRange()
+    cm.inputState.touchSelected = true
+    cm.docView.nativeSelection = cm.state.selection.main
+    let sel = getSelection()!, writes = 0
+    sel.collapse = function(...args: [Node | null, number?]) { writes++; return Selection.prototype.collapse.apply(this, args) }
+    try {
+      cm.dispatch({effects: toggle.of(null)})
+    } finally {
+      delete (sel as any).collapse
+    }
+    ist(writes, 0)
+    ist(cm.docView.posFromDOM(sel.focusNode!, sel.focusOffset), 4)
+  })
+
+  it("writes a held selection back when a redraw moves it", () => {
+    let toggle = StateEffect.define<null>()
+    let field = StateField.define<DecorationSet>({
+      create: () => Decoration.none,
+      update(deco, tr) {
+        return tr.effects.some(e => e.is(toggle)) ? Decoration.set(Decoration.mark({class: "x"}).range(4, 7)) : deco
+      },
+      provide: f => EditorView.decorations.from(f)
+    })
+    let cm = requireFocus(tempView("one two three four", [field]))
+    cm.dispatch({selection: {anchor: 0, head: 11}})
+    cm.inputState.touchSelected = true
+    cm.docView.nativeSelection = cm.state.selection.main
+    cm.dispatch({effects: toggle.of(null)})
+    let sel = getSelection()!
+    ist(cm.docView.posFromDOM(sel.anchorNode!, sel.anchorOffset), 0)
+    ist(cm.docView.posFromDOM(sel.focusNode!, sel.focusOffset), 11)
+  })
+
+  it("restores the selection when focus returns while it waits for the browser", async () => {
+    let cm = requireFocus(tempView("one two three"))
+    cm.dispatch({selection: {anchor: 4, head: 7}})
+    cm.inputState.touchSelected = true
+    cm.docView.nativeSelection = cm.state.selection.main
+    let input = document.body.appendChild(document.createElement("input"))
+    try {
+      input.focus()
+      await new Promise(resolve => setTimeout(resolve, 50))
+      cm.focus()
+      await new Promise(resolve => setTimeout(resolve, 50))
+      let sel = getSelection()!
+      ist(sel.anchorOffset, 4)
+      ist(sel.focusOffset, 7)
+      ist(cm.state.selection.main.from, 4)
+      ist(cm.state.selection.main.to, 7)
+    } finally {
+      input.remove()
+    }
   })
 })

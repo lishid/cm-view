@@ -7,7 +7,7 @@ import {clientRectsFor, isEquivalentPosition, Rect, scrollRectIntoView,
         getScrollStack, restoreScrollStack, isElt} from "./dom"
 import {ViewUpdate, decorations as decorationsFacet, outerDecorations, ChangedRange, editable, blockWrappers,
         ScrollTarget, scrollHandler, getCoveredMargins, logException, setEditContextFormatting} from "./extension"
-import {EditorView} from "./editorview"
+import {EditorView, UpdateState} from "./editorview"
 import {Direction} from "./bidi"
 import {Tile, LineTile, DocTile, TileFlag, BlockWrapperTile} from "./tile"
 import {TileUpdate, Reused} from "./buildtile"
@@ -43,6 +43,10 @@ export class DocView {
   // we don't mess it up when reading it back it
   impreciseAnchor: DOMPos | null = null
   impreciseHead: DOMPos | null = null
+  // A selection read from a DOM selection the browser is still moving
+  // (Chrome Android's selection handles), not written back until the
+  // handle is released, since writing it ends the drag
+  nativeSelection: SelectionRange | null = null
   forceSelection = false
 
   // Used by the resize observer to ignore resizes that we caused
@@ -141,7 +145,8 @@ export class DocView {
       // to detect that situation.
       let track = browser.chrome || browser.ios ? {node: observer.selectionRange.focusNode!, written: false} : undefined
       this.tile.sync(track)
-      if (track && (track.written || observer.selectionRange.focusNode != track.node || !this.tile.dom.contains(track.node)))
+      if (track && (observer.selectionRange.focusNode != track.node || !this.tile.dom.contains(track.node) ||
+          track.written && !this.showsNativeSelection(this.view.state.selection.main)))
         this.forceSelection = true
       this.tile.dom.style.height = ""
     })
@@ -192,7 +197,7 @@ export class DocView {
     if (force || !domSel.focusNode || (
           !isEquivalentPosition(anchor.node, anchor.offset, domSel.anchorNode, domSel.anchorOffset) ||
           !isEquivalentPosition(head.node, head.offset, domSel.focusNode, domSel.focusOffset)
-        ) && !this.suppressWidgetCursorChange(domSel, main)) {
+        ) && !this.suppressWidgetCursorChange(domSel, main) && !this.keepsNativeSelection(main)) {
       view.observer.ignore(() => {
         // Chrome Android will hide the virtual keyboard when tapping
         // inside an uneditable node, and not bring it back when we
@@ -256,6 +261,26 @@ export class DocView {
     return this.hasComposition && cursor.empty &&
       isEquivalentPosition(sel.focusNode!, sel.focusOffset, sel.anchorNode, sel.anchorOffset) &&
       this.posFromDOM(sel.focusNode!, sel.focusOffset) == cursor.head
+  }
+
+  keepsNativeSelection(main: SelectionRange) {
+    return this.view.inputState.touchSelected && !!this.nativeSelection && main.eq(this.nativeSelection)
+  }
+
+  // Whether the DOM selection, after a redraw, is still the one left to the browser
+  showsNativeSelection(main: SelectionRange) {
+    if (!this.keepsNativeSelection(main)) return false
+    let sel = getSelection(this.view.root), dom = this.tile.dom
+    if (!sel || !dom.contains(sel.anchorNode) || !dom.contains(sel.focusNode)) return false
+    return this.posFromDOM(sel.anchorNode!, sel.anchorOffset) == main.anchor &&
+      this.posFromDOM(sel.focusNode!, sel.focusOffset) == main.head
+  }
+
+  // Write the selection back once the browser's selection handle is released
+  releaseNativeSelection() {
+    if (!this.nativeSelection) return
+    this.nativeSelection = null
+    if (this.view.updateState == UpdateState.Idle) this.updateSelection()
   }
 
   enforceCursorAssoc() {
@@ -571,6 +596,7 @@ export class DocView {
 
   destroy() {
     destroyDropped(this.tile)
+    this.nativeSelection = null
   }
 }
 
