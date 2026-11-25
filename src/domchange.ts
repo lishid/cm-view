@@ -72,6 +72,8 @@ export class DOMChange {
       } else {
         this.newSel = EditorSelection.single(anchor, head)
       }
+      if (browser.android && browser.chrome && view.inputState.touchCancelled)
+        view.docView.setNativeSelection(this.newSel.main)
     }
   }
 }

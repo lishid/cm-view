@@ -1,4 +1,4 @@
-import {tempView} from "./tempview.js"
+import {tempView, requireFocus} from "./tempview.js"
 import {EditorState, StateField} from "@codemirror/state"
 import {Decoration, DecorationSet, EditorView, WidgetType} from "@codemirror/view"
 import ist from "ist"
@@ -250,5 +250,19 @@ describe("DOM changes", () => {
     flush(cm)
     cm.measure()
     ist(cm.contentDOM.children[0].children[0].className, "x")
+  })
+
+  it("leaves the selection to the browser until it stops changing it", async () => {
+    let cm = requireFocus(tempView("one two three"))
+    cm.dispatch({selection: {anchor: 0, head: 3}})
+    cm.inputState.touchCancelled = true
+    cm.docView.setNativeSelection(cm.state.selection.main)
+    let text = cm.domAtPos(1).node
+    cm.observer.ignore(() => getSelection()!.setBaseAndExtent(text, 0, text, 5))
+    cm.observer.readSelectionRange()
+    cm.dispatch({})
+    ist(getSelection()!.focusOffset, 5)
+    await new Promise(resolve => setTimeout(resolve, 600))
+    ist(getSelection()!.focusOffset, 3)
   })
 })

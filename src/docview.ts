@@ -7,7 +7,7 @@ import {clientRectsFor, isEquivalentPosition, Rect, scrollRectIntoView,
         getScrollStack, restoreScrollStack, isElt} from "./dom"
 import {ViewUpdate, decorations as decorationsFacet, outerDecorations, ChangedRange, editable, blockWrappers,
         ScrollTarget, scrollHandler, getCoveredMargins, logException, setEditContextFormatting} from "./extension"
-import {EditorView} from "./editorview"
+import {EditorView, UpdateState} from "./editorview"
 import {Direction} from "./bidi"
 import {Tile, LineTile, DocTile, TileFlag, BlockWrapperTile} from "./tile"
 import {TileUpdate, Reused} from "./buildtile"
@@ -43,6 +43,11 @@ export class DocView {
   // we don't mess it up when reading it back it
   impreciseAnchor: DOMPos | null = null
   impreciseHead: DOMPos | null = null
+  // A selection read from a DOM selection the browser is still moving
+  // (Chrome Android's selection handles), not written back until it
+  // has been unchanged for a moment, since writing it ends the drag
+  nativeSelection: SelectionRange | null = null
+  nativeSelectionTimeout = -1
   forceSelection = false
 
   // Used by the resize observer to ignore resizes that we caused
@@ -192,7 +197,7 @@ export class DocView {
     if (force || !domSel.focusNode || (
           !isEquivalentPosition(anchor.node, anchor.offset, domSel.anchorNode, domSel.anchorOffset) ||
           !isEquivalentPosition(head.node, head.offset, domSel.focusNode, domSel.focusOffset)
-        ) && !this.suppressWidgetCursorChange(domSel, main)) {
+        ) && !this.suppressWidgetCursorChange(domSel, main) && !this.keepsNativeSelection(main)) {
       view.observer.ignore(() => {
         // Chrome Android will hide the virtual keyboard when tapping
         // inside an uneditable node, and not bring it back when we
@@ -256,6 +261,20 @@ export class DocView {
     return this.hasComposition && cursor.empty &&
       isEquivalentPosition(sel.focusNode!, sel.focusOffset, sel.anchorNode, sel.anchorOffset) &&
       this.posFromDOM(sel.focusNode!, sel.focusOffset) == cursor.head
+  }
+
+  keepsNativeSelection(main: SelectionRange) {
+    return this.view.inputState.touchCancelled && !!this.nativeSelection && main.eq(this.nativeSelection)
+  }
+
+  // Leave the selection to the browser until it stops changing it
+  setNativeSelection(sel: SelectionRange) {
+    this.nativeSelection = sel
+    clearTimeout(this.nativeSelectionTimeout)
+    this.nativeSelectionTimeout = setTimeout(() => {
+      this.nativeSelection = null
+      if (this.view.updateState == UpdateState.Idle) this.updateSelection()
+    }, NativeSelectionDelay)
   }
 
   enforceCursorAssoc() {
@@ -571,6 +590,7 @@ export class DocView {
 
   destroy() {
     destroyDropped(this.tile)
+    clearTimeout(this.nativeSelectionTimeout)
   }
 }
 
@@ -624,6 +644,9 @@ function findCompositionRange(view: EditorView, changes: ChangeSet, headPos: num
 }
 
 const enum NextTo { Before = 1, After = 2 }
+
+// How long the browser must leave the selection unchanged before it is written back
+const NativeSelectionDelay = 500
 
 function nextToUneditable(node: Node, offset: number) {
   if (!isElt(node)) return 0
