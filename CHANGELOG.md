@@ -1,3 +1,11 @@
+## 6.44.1 (2026-11-26)
+
+### Bug fixes
+
+Fix the editor believing touch remained active when finished via touchcancel rather than touchend.
+
+Fix workaround for Chrome Android selection handle drags that go out of the viewport.
+
 ## 6.44.0 (2026-11-25)
 
 ### Bug fixes
