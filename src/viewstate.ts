@@ -603,8 +603,7 @@ export class ViewState {
   }
 
   getScrollOffset() {
-    return this.scrollParent == this.view.scrollDOM ? this.scrollParent.scrollTop * this.scaleY
-      : (this.scrollParent ? this.scrollParent.getBoundingClientRect().top : 0) - this.view.contentDOM.getBoundingClientRect().top
+    return (this.scrollParent ? this.scrollParent.getBoundingClientRect().top : 0) - this.view.contentDOM.getBoundingClientRect().top
   }
 
   scrollAnchorAt(scrollOffset: number) {

@@ -258,6 +258,14 @@ describe("EditorView drawing", () => {
     ist(Math.abs(cm.scrollDOM.scrollHeight - cm.scrollDOM.clientHeight - cm.scrollDOM.scrollTop), 2, "<")
   })
 
+  it("stabilizes the scroll position with other elements above the content", () => {
+    let cm = tempView("\n".repeat(400), [scroll(100), EditorView.contentAttributes.of({style: "margin-top: 1000px"}),
+      EditorView.decorations.of(Decoration.set(Array.from(new Array(10), (_, i) => bigText.range(310 + i))))])
+    cm.scrollDOM.scrollTop = cm.lineBlockAt(300).top + 1000
+    cm.measure()
+    ist(Math.abs(cm.lineBlockAt(300).top + 1000 - cm.scrollDOM.scrollTop), 2, "<")
+  })
+
   it("doesn't overcompensate scroll position for poorly estimated height", () => {
     let deco = () => {
       let widget = new class extends WidgetType {
