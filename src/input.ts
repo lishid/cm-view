@@ -10,7 +10,7 @@ import {getSelection, focusPreventScroll, dispatchKey, scrollableParents, hasSel
 import {applyDOMChangeInner} from "./domchange"
 
 const LOG_input = false
-const LOG_events = true
+const LOG_events = false
 
 export class InputState {
   lastKeyCode: number = 0
