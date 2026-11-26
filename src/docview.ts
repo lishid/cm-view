@@ -167,6 +167,11 @@ export class DocView {
     let selectionNotFocus = !focused && !(view.state.facet(editable) || dom.tabIndex > -1) &&
       hasSelection(dom, view.observer.selectionRange) && !(activeElt && dom.contains(activeElt))
     if (!(focused || fromPointer || selectionNotFocus)) return
+    if (view.inputState.androidSelection > -1) {
+      view.inputState.androidSelectionNeedsFlush = true
+      return
+    }
+
     let force = this.forceSelection
     this.forceSelection = false
 

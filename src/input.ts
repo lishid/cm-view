@@ -10,6 +10,7 @@ import {getSelection, focusPreventScroll, dispatchKey, scrollableParents, hasSel
 import {applyDOMChangeInner} from "./domchange"
 
 const LOG_input = false
+const LOG_events = true
 
 export class InputState {
   lastKeyCode: number = 0
@@ -84,6 +85,12 @@ export class InputState {
 
   notifiedFocused: boolean
 
+  // Used to try and guess when there is an active touch-drag
+  // selection on Chrome Android, in order to avoid interrupting this
+  // by resetting the selection.
+  androidSelection = -1
+  androidSelectionNeedsFlush = false
+
   setSelectionOrigin(origin: string) {
     this.lastSelectionOrigin = origin
     this.lastSelectionTime = Date.now()
@@ -99,6 +106,7 @@ export class InputState {
   }
 
   handleEvent(event: Event) {
+    LOG_events && console.log("event:", event.type)
     if (!eventBelongsToEditor(this.view, event) || this.ignoreDuringComposition(event)) return
     if (event.type == "keydown" && this.keydown(event as KeyboardEvent)) return
     if (this.view.updateState != UpdateState.Idle) Promise.resolve().then(() => this.runHandlers(event.type, event))
@@ -216,6 +224,30 @@ export class InputState {
 
   destroy() {
     if (this.mouseSelection) this.mouseSelection.destroy()
+  }
+
+  selectionchange() {
+    if (this.androidSelection > -1) this.scheduleAndroidSelectionEnd()
+  }
+
+  startAndroidSelection() {
+    this.scheduleAndroidSelectionEnd()
+  }
+
+  scheduleAndroidSelectionEnd() {
+    this.view.win.clearTimeout(this.androidSelection)
+    this.androidSelection = this.view.win.setTimeout(() => this.endAndroidSelection(), 1000)
+  }
+
+  endAndroidSelection() {
+    if (this.androidSelection > -1) {
+      this.view.win.clearTimeout(this.androidSelection)
+      this.androidSelection = -1
+      if (this.androidSelectionNeedsFlush) {
+        this.androidSelectionNeedsFlush = false
+        this.view.docView.updateSelection(true)
+      }
+    }
   }
 }
 
@@ -551,6 +583,7 @@ observers.touchmove = view => {
 
 observers.touchend = observers.touchcancel = (view, e: TouchEvent) => {
   view.inputState.touchActive = false
+  if (browser.chrome && browser.android && e.type == "touchcancel") view.inputState.startAndroidSelection()
 }
 
 handlers.mousedown = (view, event: MouseEvent) => {
@@ -888,6 +921,7 @@ const compositionEnd = observers.compositionend = view => {
 }
 
 observers.contextmenu = view => {
+  view.inputState.endAndroidSelection()
   view.inputState.lastContextMenu = Date.now()
 }
 
