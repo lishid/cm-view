@@ -1,3 +1,9 @@
+## 6.44.2 (2026-11-26)
+
+### Bug fixes
+
+Disable logging accidentally left enabled.
+
 ## 6.44.1 (2026-11-26)
 
 ### Bug fixes
