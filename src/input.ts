@@ -85,10 +85,14 @@ export class InputState {
 
   notifiedFocused: boolean
 
+  // Set when a touch selects text on Chrome Android (a long-press or a
+  // double-tap) until the next touch, key or mouse press, blur or edit
+  androidTouchSelected = false
   // Used to try and guess when there is an active touch-drag
   // selection on Chrome Android, in order to avoid interrupting this
-  // by resetting the selection.
-  androidSelection = -1
+  // by resetting the selection. Set from a selection change while
+  // androidTouchSelected until the handle's release.
+  androidSelection = false
   androidSelectionNeedsFlush = false
 
   setSelectionOrigin(origin: string) {
@@ -145,6 +149,7 @@ export class InputState {
     // Must always run, even if a custom handler handled the event
     this.lastKeyCode = event.keyCode
     this.lastKeyTime = Date.now()
+    this.endAndroidTouchSelection()
 
     if (this.composing >= 0 && event.isComposing === false) compositionEnd(this.view)
 
@@ -219,32 +224,33 @@ export class InputState {
     if (this.mouseSelection) this.mouseSelection.update(update)
     if (this.draggedContent && update.docChanged) this.draggedContent = this.draggedContent.map(update.changes)
     if (update.transactions.length) this.lastKeyCode = this.lastSelectionTime = 0
+    // An edit (a toolbar command, a change from elsewhere) ends a guessed handle drag
+    if (update.docChanged) this.androidTouchSelected = this.androidSelection = this.androidSelectionNeedsFlush = false
   }
 
   destroy() {
     if (this.mouseSelection) this.mouseSelection.destroy()
   }
 
+  // Chrome fires contextmenu on a handle's release, a selection menu item and a
+  // double-tap's word selection, and a selection change just after it isn't a drag's
   selectionchange() {
-    if (this.androidSelection > -1) this.scheduleAndroidSelectionEnd()
+    if (this.androidTouchSelected && this.lastContextMenu < Date.now() - 100) this.androidSelection = true
   }
 
-  startAndroidSelection() {
-    this.scheduleAndroidSelectionEnd()
-  }
-
-  scheduleAndroidSelectionEnd() {
-    this.view.win.clearTimeout(this.androidSelection)
-    this.androidSelection = this.view.win.setTimeout(() => this.endAndroidSelection(), 1000)
+  endAndroidTouchSelection() {
+    this.androidTouchSelected = false
+    this.endAndroidSelection()
   }
 
   endAndroidSelection() {
-    if (this.androidSelection > -1) {
-      this.view.win.clearTimeout(this.androidSelection)
-      this.androidSelection = -1
+    if (this.androidSelection) {
+      this.androidSelection = false
       if (this.androidSelectionNeedsFlush) {
         this.androidSelectionNeedsFlush = false
-        this.view.docView.updateSelection(true)
+        // Compared with the last selection read, not the live one, which a
+        // released handle or a menu item (Select all) may have moved since
+        this.view.docView.updateSelection()
       }
     }
   }
@@ -569,6 +575,7 @@ observers.touchstart = (view, e: TouchEvent) => {
   let iState = view.inputState, touch = e.targetTouches[0]
   iState.touchActive = true
   iState.lastTouchTime = Date.now()
+  iState.endAndroidTouchSelection()
   if (touch) {
     iState.lastTouchX = touch.clientX
     iState.lastTouchY = touch.clientY
@@ -582,10 +589,17 @@ observers.touchmove = view => {
 
 observers.touchend = observers.touchcancel = (view, e: TouchEvent) => {
   view.inputState.touchActive = false
-  if (browser.chrome && browser.android && e.type == "touchcancel") view.inputState.startAndroidSelection()
+  if (browser.chrome && browser.android && e.type == "touchcancel") view.inputState.androidTouchSelected = true
+}
+
+// A double-tap selects a word without a touchcancel, and its handles can be dragged too
+observers.dblclick = view => {
+  if (browser.chrome && browser.android && view.inputState.lastTouchTime > Date.now() - 2000)
+    view.inputState.androidTouchSelected = true
 }
 
 handlers.mousedown = (view, event: MouseEvent) => {
+  view.inputState.endAndroidTouchSelection()
   view.observer.flush()
   if (view.inputState.lastTouchTime > Date.now() - 2000) return false // Ignore touch interaction
   let style: MouseSelectionStyle | null = null
@@ -891,6 +905,7 @@ observers.focus = view => {
 }
 
 observers.blur = view => {
+  view.inputState.endAndroidTouchSelection()
   view.observer.clearSelectionRange()
   updateForFocusChange(view)
 }

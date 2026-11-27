@@ -1,5 +1,5 @@
-import {tempView} from "./tempview.js"
-import {EditorState, StateField} from "@codemirror/state"
+import {tempView, requireFocus} from "./tempview.js"
+import {EditorState, StateField, StateEffect} from "@codemirror/state"
 import {Decoration, DecorationSet, EditorView, WidgetType} from "@codemirror/view"
 import ist from "ist"
 
@@ -260,5 +260,135 @@ describe("DOM changes", () => {
     flush(cm)
     cm.measure()
     ist(cm.contentDOM.children[0].children[0].className, "x")
+  })
+
+  it("doesn't write a held selection when redrawing the node it is in", () => {
+    let toggle = StateEffect.define<null>()
+    let field = StateField.define<DecorationSet>({
+      create: () => Decoration.set(Decoration.replace({}).range(0, 4)),
+      update(deco, tr) {
+        return tr.effects.some(e => e.is(toggle)) ? Decoration.set(Decoration.replace({widget: new class extends WidgetType {
+          toDOM() { return document.createElement("b") }
+        }}).range(0, 4)) : deco
+      },
+      provide: f => EditorView.decorations.from(f)
+    })
+    let cm = requireFocus(tempView("one two three", [field]))
+    cm.dispatch({selection: {anchor: 8, head: 4}})
+    let line = cm.contentDOM.firstChild!, text = cm.domAtPos(8).node
+    cm.observer.ignore(() => getSelection()!.setBaseAndExtent(text, 4, line, Array.from(line.childNodes).indexOf(text as ChildNode)))
+    cm.observer.readSelectionRange()
+    cm.inputState.androidSelection = true
+    let sel = getSelection()!, writes = 0
+    sel.collapse = function(...args: [Node | null, number?]) { writes++; return Selection.prototype.collapse.apply(this, args) }
+    try {
+      cm.dispatch({effects: toggle.of(null)})
+    } finally {
+      delete (sel as any).collapse
+      cm.inputState.endAndroidSelection()
+    }
+    ist(writes, 0)
+    ist(cm.docView.posFromDOM(sel.focusNode!, sel.focusOffset), 4)
+  })
+
+  it("writes a held selection back when a redraw moves it", () => {
+    let toggle = StateEffect.define<null>()
+    let field = StateField.define<DecorationSet>({
+      create: () => Decoration.none,
+      update(deco, tr) {
+        return tr.effects.some(e => e.is(toggle)) ? Decoration.set(Decoration.mark({class: "x"}).range(4, 7)) : deco
+      },
+      provide: f => EditorView.decorations.from(f)
+    })
+    let cm = requireFocus(tempView("one two three four", [field]))
+    cm.dispatch({selection: {anchor: 0, head: 11}})
+    cm.inputState.androidSelection = true
+    try {
+      cm.dispatch({effects: toggle.of(null)})
+      let sel = getSelection()!
+      ist(cm.docView.posFromDOM(sel.anchorNode!, sel.anchorOffset), 0)
+      ist(cm.docView.posFromDOM(sel.focusNode!, sel.focusOffset), 11)
+    } finally {
+      cm.inputState.endAndroidSelection()
+    }
+  })
+
+  it("keeps a selection the browser moved when the hold ends", () => {
+    let cm = requireFocus(tempView("one two three"))
+    cm.dispatch({selection: {anchor: 4, head: 7}})
+    cm.inputState.androidSelection = true
+    cm.inputState.androidSelectionNeedsFlush = true
+    let text = cm.domAtPos(4).node
+    getSelection()!.setBaseAndExtent(text, 4, text, 13)
+    cm.inputState.endAndroidSelection()
+    ist(getSelection()!.focusOffset, 13)
+  })
+
+  it("ends the hold when the document changes", () => {
+    let cm = requireFocus(tempView("one two three"))
+    cm.dispatch({selection: {anchor: 4, head: 7}})
+    cm.inputState.androidSelection = true
+    cm.dispatch({changes: {from: 4, insert: "**"}, selection: {anchor: 6, head: 9}})
+    ist(cm.selectionLeftToBrowser, false)
+    let sel = getSelection()!
+    ist(cm.docView.posFromDOM(sel.anchorNode!, sel.anchorOffset), 6)
+    ist(cm.docView.posFromDOM(sel.focusNode!, sel.focusOffset), 9)
+  })
+
+  it("holds each drag of a touch selection until its handle is released", () => {
+    let cm = tempView("one two three"), iState = cm.inputState
+    iState.androidTouchSelected = true
+    iState.lastContextMenu = Date.now() - 200
+    iState.selectionchange()
+    ist(cm.selectionLeftToBrowser, true)
+    iState.endAndroidSelection()
+    iState.lastContextMenu = Date.now()
+    iState.selectionchange()
+    ist(cm.selectionLeftToBrowser, false)
+    iState.lastContextMenu = Date.now() - 200
+    iState.selectionchange()
+    ist(cm.selectionLeftToBrowser, true)
+    iState.endAndroidTouchSelection()
+    ist(cm.selectionLeftToBrowser, false)
+    iState.selectionchange()
+    ist(cm.selectionLeftToBrowser, false)
+  })
+
+  it("doesn't hold a touch selection on its own selection writes", () => {
+    let cm = requireFocus(tempView("one two three")), iState = cm.inputState
+    iState.androidTouchSelected = true
+    iState.lastContextMenu = Date.now() - 200
+    try {
+      cm.dispatch({selection: {anchor: 4, head: 7}})
+      cm.observer.onSelectionChange(new Event("selectionchange"))
+      ist(cm.selectionLeftToBrowser, false)
+      let text = cm.domAtPos(4).node
+      getSelection()!.setBaseAndExtent(text, 4, text, 13)
+      cm.observer.onSelectionChange(new Event("selectionchange"))
+      ist(cm.selectionLeftToBrowser, true)
+    } finally {
+      iState.endAndroidTouchSelection()
+    }
+  })
+
+  it("restores a held selection when focus returns", async () => {
+    let cm = requireFocus(tempView("one two three"))
+    cm.dispatch({selection: {anchor: 4, head: 7}})
+    cm.inputState.androidSelection = true
+    let input = document.body.appendChild(document.createElement("input"))
+    try {
+      input.focus()
+      await new Promise(resolve => setTimeout(resolve, 50))
+      cm.focus()
+      await new Promise(resolve => setTimeout(resolve, 50))
+      let sel = getSelection()!
+      ist(sel.anchorOffset, 4)
+      ist(sel.focusOffset, 7)
+      ist(cm.state.selection.main.from, 4)
+      ist(cm.state.selection.main.to, 7)
+    } finally {
+      input.remove()
+      cm.inputState.endAndroidSelection()
+    }
   })
 })

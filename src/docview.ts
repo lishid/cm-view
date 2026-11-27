@@ -167,7 +167,10 @@ export class DocView {
     let selectionNotFocus = !focused && !(view.state.facet(editable) || dom.tabIndex > -1) &&
       hasSelection(dom, view.observer.selectionRange) && !(activeElt && dom.contains(activeElt))
     if (!(focused || fromPointer || selectionNotFocus)) return
-    if (view.inputState.androidSelection > -1) {
+    // Leave the selection to a dragged handle, unless a redraw moved the DOM selection off it
+    if (view.inputState.androidSelection &&
+        (!this.forceSelection || this.domSelectionMatches(view.state.selection.main))) {
+      this.forceSelection = false
       view.inputState.androidSelectionNeedsFlush = true
       return
     }
@@ -261,6 +264,14 @@ export class DocView {
     return this.hasComposition && cursor.empty &&
       isEquivalentPosition(sel.focusNode!, sel.focusOffset, sel.anchorNode, sel.anchorOffset) &&
       this.posFromDOM(sel.focusNode!, sel.focusOffset) == cursor.head
+  }
+
+  // Whether the live DOM selection maps to the given range
+  domSelectionMatches(range: SelectionRange) {
+    let sel = getSelection(this.view.root), dom = this.tile.dom
+    if (!sel || !dom.contains(sel.anchorNode) || !dom.contains(sel.focusNode)) return false
+    return this.posFromDOM(sel.anchorNode!, sel.anchorOffset) == range.anchor &&
+      this.posFromDOM(sel.focusNode!, sel.focusOffset) == range.head
   }
 
   enforceCursorAssoc() {
