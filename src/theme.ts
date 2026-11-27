@@ -137,7 +137,8 @@ export const baseTheme = buildTheme("." + baseThemeID, {
 
   ".cm-selectionHandle": {
     backgroundColor: "currentColor",
-    width: "1.5px"
+    width: "1.5px",
+    display: "none"
   },
   ".cm-selectionHandle-start::before, .cm-selectionHandle-end::before": {
     content: '""',
@@ -156,6 +157,9 @@ export const baseTheme = buildTheme("." + baseThemeID, {
   },
 
   "&.cm-focused > .cm-scroller > .cm-cursorLayer .cm-cursor": {
+    display: "block"
+  },
+  "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionHandle": {
     display: "block"
   },
 
