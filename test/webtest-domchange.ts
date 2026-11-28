@@ -7,6 +7,13 @@ function flush(cm: EditorView) {
   cm.observer.flush()
 }
 
+// Reads a selection change the way Chrome Android's selectionchange event does
+function androidSelectionChange(cm: EditorView) {
+  if (!cm.observer.readSelectionRange()) return
+  cm.inputState.selectionchange()
+  cm.observer.flush(false)
+}
+
 describe("DOM changes", () => {
   it("notices text changes", () => {
     let cm = tempView("foo\nbar")
@@ -336,11 +343,9 @@ describe("DOM changes", () => {
     ist(cm.docView.posFromDOM(sel.focusNode!, sel.focusOffset), 9)
   })
 
-  it("holds each drag of a touch selection until its handle is released", () => {
+  it("holds each drag of a selection until its handle is released", () => {
     let cm = requireFocus(tempView("one two three")), iState = cm.inputState
     cm.dispatch({selection: {anchor: 4, head: 7}})
-    iState.androidTouchSelected = true
-    iState.lastContextMenu = Date.now() - 200
     iState.selectionchange()
     ist(cm.selectionLeftToBrowser, true)
     iState.endAndroidSelection()
@@ -350,62 +355,54 @@ describe("DOM changes", () => {
     iState.lastContextMenu = Date.now() - 200
     iState.selectionchange()
     ist(cm.selectionLeftToBrowser, true)
-    iState.endAndroidTouchSelection()
-    ist(cm.selectionLeftToBrowser, false)
-    iState.selectionchange()
+    iState.endAndroidSelection()
     ist(cm.selectionLeftToBrowser, false)
   })
 
-  it("doesn't hold a touch selection on its own selection writes", () => {
+  it("doesn't hold a selection on its own selection writes", () => {
     let cm = requireFocus(tempView("one two three")), iState = cm.inputState
-    iState.androidTouchSelected = true
-    iState.lastContextMenu = Date.now() - 200
     try {
       cm.dispatch({selection: {anchor: 4, head: 7}})
-      cm.observer.onSelectionChange(new Event("selectionchange"))
+      androidSelectionChange(cm)
       ist(cm.selectionLeftToBrowser, false)
       let text = cm.domAtPos(4).node
       getSelection()!.setBaseAndExtent(text, 4, text, 13)
-      cm.observer.onSelectionChange(new Event("selectionchange"))
+      androidSelectionChange(cm)
       ist(cm.selectionLeftToBrowser, true)
     } finally {
-      iState.endAndroidTouchSelection()
+      iState.endAndroidSelection()
     }
   })
 
   it("keeps the end of a held selection that the dragged handle leaves", () => {
     let cm = requireFocus(tempView("one two three four")), iState = cm.inputState
     cm.dispatch({selection: {anchor: 4, head: 13}})
-    iState.androidTouchSelected = true
-    iState.lastContextMenu = Date.now() - 200
     try {
       let text = cm.domAtPos(4).node
       getSelection()!.setBaseAndExtent(text, 10, text, 2)
-      cm.observer.onSelectionChange(new Event("selectionchange"))
+      androidSelectionChange(cm)
       ist(cm.state.selection.main.anchor, 13)
       ist(cm.state.selection.main.head, 2)
       getSelection()!.setBaseAndExtent(text, 10, text, 16)
-      cm.observer.onSelectionChange(new Event("selectionchange"))
+      androidSelectionChange(cm)
       ist(cm.state.selection.main.anchor, 13)
       ist(cm.state.selection.main.head, 16)
     } finally {
-      iState.endAndroidTouchSelection()
+      iState.endAndroidSelection()
     }
   })
 
   it("doesn't hold a caret's handle drag", () => {
     let cm = requireFocus(tempView("one two three")), iState = cm.inputState
     cm.dispatch({selection: {anchor: 4}})
-    iState.androidTouchSelected = true
-    iState.lastContextMenu = Date.now() - 200
     try {
       getSelection()!.collapse(cm.domAtPos(4).node, 8)
-      cm.observer.onSelectionChange(new Event("selectionchange"))
+      androidSelectionChange(cm)
       ist(cm.selectionLeftToBrowser, false)
       ist(cm.state.selection.main.anchor, 8)
       ist(cm.state.selection.main.head, 8)
     } finally {
-      iState.endAndroidTouchSelection()
+      iState.endAndroidSelection()
     }
   })
 
@@ -417,29 +414,76 @@ describe("DOM changes", () => {
     cm.dispatch({selection: {anchor: 0, head: 2}})
     cm.scrollDOM.scrollTop = 3000
     cm.measure()
-    iState.androidTouchSelected = true
-    iState.lastContextMenu = Date.now() - 200
     try {
       let gaps = cm.contentDOM.querySelectorAll(".cm-gap"), gap = gaps[gaps.length - 1]
       let head = cm.docView.posFromDOM(gap, 0)
       getSelection()!.setBaseAndExtent(cm.domAtPos(0).node, 0, gap, 0)
-      cm.observer.onSelectionChange(new Event("selectionchange"))
+      androidSelectionChange(cm)
       ist(cm.state.selection.main.anchor, 0)
       ist(cm.state.selection.main.head, head)
     } finally {
-      iState.endAndroidTouchSelection()
+      iState.endAndroidSelection()
     }
   })
 
-  it("keeps a touch selection through a touch that doesn't tap", () => {
-    let cm = tempView("one two three"), iState = cm.inputState
-    iState.androidTouchSelected = true
-    iState.androidSelection = 4
+  it("doesn't hold a selection change right after a key press", () => {
+    let cm = requireFocus(tempView("one two three")), iState = cm.inputState
+    cm.dispatch({selection: {anchor: 4, head: 7}})
+    iState.lastKeyTime = Date.now()
+    iState.selectionchange()
+    ist(cm.selectionLeftToBrowser, false)
+    iState.lastKeyTime = Date.now() - 200
+    iState.selectionchange()
+    ist(cm.selectionLeftToBrowser, true)
+    iState.endAndroidSelection()
+  })
+
+  it("places a caret on a tap while a range is selected", () => {
+    let cm = requireFocus(tempView("one two three")), iState = cm.inputState
+    cm.dispatch({selection: {anchor: 4, head: 7}})
+    try {
+      cm.contentDOM.dispatchEvent(new TouchEvent("touchstart", {bubbles: true}))
+      cm.contentDOM.dispatchEvent(new TouchEvent("touchend", {bubbles: true}))
+      cm.contentDOM.dispatchEvent(new MouseEvent("mousedown", {bubbles: true}))
+      cm.contentDOM.dispatchEvent(new MouseEvent("mouseup", {bubbles: true}))
+      getSelection()!.collapse(cm.domAtPos(4).node, 11)
+      androidSelectionChange(cm)
+      ist(cm.selectionLeftToBrowser, false)
+      ist(cm.state.selection.main.anchor, 11)
+      ist(cm.state.selection.main.head, 11)
+    } finally {
+      iState.endAndroidSelection()
+    }
+  })
+
+  it("doesn't hold a selection during a mouse selection", () => {
+    let cm = requireFocus(tempView("one two three")), iState = cm.inputState
+    cm.dispatch({selection: {anchor: 4, head: 7}})
+    let {left, top} = cm.coordsAtPos(4)!
+    cm.contentDOM.dispatchEvent(new MouseEvent("mousedown", {bubbles: true, button: 0, clientX: left, clientY: top + 2}))
+    try {
+      ist(iState.mouseSelection)
+      iState.lastMouseDownTime = Date.now() - 200
+      iState.selectionchange()
+      ist(cm.selectionLeftToBrowser, false)
+    } finally {
+      cm.contentDOM.dispatchEvent(new MouseEvent("mouseup", {bubbles: true}))
+    }
+  })
+
+  it("ends the hold on a touch or a mouse press", () => {
+    let cm = requireFocus(tempView("one two three")), iState = cm.inputState
+    cm.dispatch({selection: {anchor: 4, head: 7}})
+    iState.selectionchange()
+    ist(cm.selectionLeftToBrowser, true)
     cm.contentDOM.dispatchEvent(new TouchEvent("touchstart", {bubbles: true}))
     ist(cm.selectionLeftToBrowser, false)
-    ist(iState.androidTouchSelected, true)
+    cm.contentDOM.dispatchEvent(new TouchEvent("touchend", {bubbles: true}))
+    iState.selectionchange()
+    ist(cm.selectionLeftToBrowser, true)
     cm.contentDOM.dispatchEvent(new MouseEvent("mousedown", {bubbles: true}))
-    ist(iState.androidTouchSelected, false)
+    cm.contentDOM.dispatchEvent(new MouseEvent("mouseup", {bubbles: true}))
+    ist(cm.selectionLeftToBrowser, false)
   })
 
   it("restores a held selection when focus returns", async () => {
