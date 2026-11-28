@@ -127,7 +127,7 @@ export class EditorView {
   /// touch selected text until the handle is released, the next touch,
   /// key or mouse press, blur, or a change to the document. The view
   /// doesn't update when it ends.
-  get selectionLeftToBrowser() { return !!this.inputState && this.inputState.androidSelection }
+  get selectionLeftToBrowser() { return !!this.inputState && this.inputState.androidSelection > -1 }
 
   private dispatchTransactions: (trs: readonly Transaction[], view: EditorView) => void
 

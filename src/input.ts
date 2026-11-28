@@ -90,9 +90,10 @@ export class InputState {
   androidTouchSelected = false
   // Used to try and guess when there is an active touch-drag
   // selection on Chrome Android, in order to avoid interrupting this
-  // by resetting the selection. Set from a selection change while
-  // androidTouchSelected until the handle's release.
-  androidSelection = false
+  // by resetting the selection. The end the dragged handle leaves in
+  // place, from a selection change while androidTouchSelected until the
+  // handle's release; -1 otherwise.
+  androidSelection = -1
   androidSelectionNeedsFlush = false
 
   setSelectionOrigin(origin: string) {
@@ -225,7 +226,10 @@ export class InputState {
     if (this.draggedContent && update.docChanged) this.draggedContent = this.draggedContent.map(update.changes)
     if (update.transactions.length) this.lastKeyCode = this.lastSelectionTime = 0
     // An edit (a toolbar command, a change from elsewhere) ends a guessed handle drag
-    if (update.docChanged) this.androidTouchSelected = this.androidSelection = this.androidSelectionNeedsFlush = false
+    if (update.docChanged) {
+      this.androidTouchSelected = this.androidSelectionNeedsFlush = false
+      this.androidSelection = -1
+    }
   }
 
   destroy() {
@@ -235,9 +239,13 @@ export class InputState {
   // Chrome fires contextmenu on a handle's release, a selection menu item and a
   // double-tap's word selection, and a selection change just after it isn't a drag's
   selectionchange() {
-    // A caret's handle drag ends without a contextmenu
-    if (this.view.state.selection.main.empty) return
-    if (this.androidTouchSelected && this.lastContextMenu < Date.now() - 100) this.androidSelection = true
+    if (this.androidSelection > -1 || !this.androidTouchSelected || this.lastContextMenu > Date.now() - 100) return
+    let {focusNode, focusOffset} = this.view.observer.selectionRange, {from, to} = this.view.state.selection.main
+    // A caret's handle drag has no other end to keep, and ends without a contextmenu
+    if (from == to || !focusNode || !this.view.contentDOM.contains(focusNode)) return
+    // The dragged handle is the end nearer the new head, so keep the other one
+    let head = this.view.docView.posFromDOM(focusNode, focusOffset)
+    this.androidSelection = head - from > to - head ? from : to
   }
 
   endAndroidTouchSelection() {
@@ -246,8 +254,8 @@ export class InputState {
   }
 
   endAndroidSelection() {
-    if (this.androidSelection) {
-      this.androidSelection = false
+    if (this.androidSelection > -1) {
+      this.androidSelection = -1
       if (this.androidSelectionNeedsFlush) {
         this.androidSelectionNeedsFlush = false
         // Compared with the last selection read, not the live one, which a

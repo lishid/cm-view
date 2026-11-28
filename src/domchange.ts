@@ -46,7 +46,7 @@ export class DOMChange {
       // Chrome will put the selection *inside* them, confusing
       // posFromDOM
       let vp = view.viewport
-      if ((browser.ios || browser.chrome) && head != anchor &&
+      if ((browser.ios || browser.chrome) && head != anchor && view.inputState.androidSelection < 0 &&
           Math.min(head, anchor) <= curSel.main.from && Math.max(head, anchor) >= curSel.main.to &&
           (vp.from > 0 || vp.to < view.state.doc.length)) {
         let from = Math.min(head, anchor), to = Math.max(head, anchor)
@@ -56,6 +56,9 @@ export class DOMChange {
           anchor = view.state.doc.length
         }
       }
+      // Chrome Android starts a handle drag from where it last drew the other
+      // handle, which is wrong when that end is far off-screen
+      if (view.inputState.androidSelection > -1) anchor = view.inputState.androidSelection
       if (view.inputState.composing > -1 && curSel.ranges.length > 1) {
         this.newSel = curSel.replaceRange(EditorSelection.range(anchor, head))
       } else if (view.lineWrapping && anchor == head && !(curSel.main.empty && curSel.main.head == head) &&
