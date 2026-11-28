@@ -86,7 +86,7 @@ export class InputState {
   notifiedFocused: boolean
 
   // Set when a touch selects text on Chrome Android (a long-press or a
-  // double-tap) until the next touch, key or mouse press, blur or edit
+  // double-tap) until the next tap or click, key press, blur or edit
   androidTouchSelected = false
   // Used to try and guess when there is an active touch-drag
   // selection on Chrome Android, in order to avoid interrupting this
@@ -235,6 +235,8 @@ export class InputState {
   // Chrome fires contextmenu on a handle's release, a selection menu item and a
   // double-tap's word selection, and a selection change just after it isn't a drag's
   selectionchange() {
+    // A caret's handle drag ends without a contextmenu
+    if (this.view.state.selection.main.empty) return
     if (this.androidTouchSelected && this.lastContextMenu < Date.now() - 100) this.androidSelection = true
   }
 
@@ -575,7 +577,8 @@ observers.touchstart = (view, e: TouchEvent) => {
   let iState = view.inputState, touch = e.targetTouches[0]
   iState.touchActive = true
   iState.lastTouchTime = Date.now()
-  iState.endAndroidTouchSelection()
+  // A touch that scrolls keeps the touch selection, and only a tap sends mousedown
+  iState.endAndroidSelection()
   if (touch) {
     iState.lastTouchX = touch.clientX
     iState.lastTouchY = touch.clientY
@@ -598,8 +601,11 @@ observers.dblclick = view => {
     view.inputState.androidTouchSelected = true
 }
 
-handlers.mousedown = (view, event: MouseEvent) => {
+observers.mousedown = view => {
   view.inputState.endAndroidTouchSelection()
+}
+
+handlers.mousedown = (view, event: MouseEvent) => {
   view.observer.flush()
   if (view.inputState.lastTouchTime > Date.now() - 2000) return false // Ignore touch interaction
   let style: MouseSelectionStyle | null = null

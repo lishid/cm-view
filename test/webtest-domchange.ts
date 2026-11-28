@@ -336,7 +336,8 @@ describe("DOM changes", () => {
   })
 
   it("holds each drag of a touch selection until its handle is released", () => {
-    let cm = tempView("one two three"), iState = cm.inputState
+    let cm = requireFocus(tempView("one two three")), iState = cm.inputState
+    cm.dispatch({selection: {anchor: 4, head: 7}})
     iState.androidTouchSelected = true
     iState.lastContextMenu = Date.now() - 200
     iState.selectionchange()
@@ -369,6 +370,33 @@ describe("DOM changes", () => {
     } finally {
       iState.endAndroidTouchSelection()
     }
+  })
+
+  it("doesn't hold a caret's handle drag", () => {
+    let cm = requireFocus(tempView("one two three")), iState = cm.inputState
+    cm.dispatch({selection: {anchor: 4}})
+    iState.androidTouchSelected = true
+    iState.lastContextMenu = Date.now() - 200
+    try {
+      getSelection()!.collapse(cm.domAtPos(4).node, 8)
+      cm.observer.onSelectionChange(new Event("selectionchange"))
+      ist(cm.selectionLeftToBrowser, false)
+      ist(cm.state.selection.main.anchor, 8)
+      ist(cm.state.selection.main.head, 8)
+    } finally {
+      iState.endAndroidTouchSelection()
+    }
+  })
+
+  it("keeps a touch selection through a touch that doesn't tap", () => {
+    let cm = tempView("one two three"), iState = cm.inputState
+    iState.androidTouchSelected = true
+    iState.androidSelection = true
+    cm.contentDOM.dispatchEvent(new TouchEvent("touchstart", {bubbles: true}))
+    ist(cm.selectionLeftToBrowser, false)
+    ist(iState.androidTouchSelected, true)
+    cm.contentDOM.dispatchEvent(new MouseEvent("mousedown", {bubbles: true}))
+    ist(iState.androidTouchSelected, false)
   })
 
   it("restores a held selection when focus returns", async () => {
